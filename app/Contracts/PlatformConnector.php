@@ -55,4 +55,16 @@ interface PlatformConnector
      * @return string
      */
     public function getPlatform(): string;
+
+    /**
+     * Publish content to the platform
+     *
+     * @param string $targetId The external ID of the publish target (page, org, etc.)
+     * @param string $text The text content to publish
+     * @param string $accessToken The access token (can be user or page token)
+     * @param array $options Additional options (link, media, etc.)
+     * @return array ['external_post_id' => string, 'raw_response' => array]
+     * @throws \Exception on publish failure
+     */
+    public function publish(string $targetId, string $text, string $accessToken, array $options = []): array;
 }

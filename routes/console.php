@@ -10,3 +10,6 @@ Artisan::command('inspire', function () {
 
 // Schedule OAuth token expiry watcher to run nightly
 Schedule::command('oauth:watch-expiry --refresh')->daily();
+
+// Schedule post publishing to run every minute
+Schedule::command('posts:schedule')->everyMinute();

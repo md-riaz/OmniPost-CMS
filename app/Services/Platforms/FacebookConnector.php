@@ -165,4 +165,65 @@ class FacebookConnector implements PlatformConnector
             throw $e;
         }
     }
+
+    public function publish(string $targetId, string $text, string $accessToken, array $options = []): array
+    {
+        try {
+            $params = [
+                'message' => $text,
+                'access_token' => $accessToken,
+            ];
+
+            // Add optional link
+            if (!empty($options['link'])) {
+                $params['link'] = $options['link'];
+            }
+
+            $response = $this->client->post(
+                'https://graph.facebook.com/' . $this->graphApiVersion . '/' . $targetId . '/feed',
+                [
+                    'form_params' => $params,
+                ]
+            );
+
+            $data = json_decode($response->getBody()->getContents(), true);
+
+            if (empty($data['id'])) {
+                throw new \Exception('Facebook API did not return post ID');
+            }
+
+            Log::info('Successfully published to Facebook', [
+                'page_id' => $targetId,
+                'post_id' => $data['id'],
+            ]);
+
+            return [
+                'external_post_id' => $data['id'],
+                'raw_response' => $data,
+            ];
+        } catch (\GuzzleHttp\Exception\RequestException $e) {
+            $statusCode = $e->getResponse()?->getStatusCode();
+            $responseBody = $e->getResponse()?->getBody()->getContents();
+            $errorData = json_decode($responseBody, true);
+
+            Log::error('Failed to publish to Facebook', [
+                'page_id' => $targetId,
+                'status_code' => $statusCode,
+                'error' => $e->getMessage(),
+                'response' => $responseBody,
+            ]);
+
+            // Check for token expiry (190 = expired token)
+            if (isset($errorData['error']['code']) && $errorData['error']['code'] == 190) {
+                throw new \Exception('Token expired: ' . ($errorData['error']['message'] ?? 'Unknown error'), 190);
+            }
+
+            // Check for rate limiting (613 = rate limit)
+            if (isset($errorData['error']['code']) && $errorData['error']['code'] == 613) {
+                throw new \Exception('Rate limited: ' . ($errorData['error']['message'] ?? 'Unknown error'), 613);
+            }
+
+            throw new \Exception('Failed to publish to Facebook: ' . ($errorData['error']['message'] ?? $e->getMessage()), $statusCode ?? 500);
+        }
+    }
 }

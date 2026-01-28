@@ -288,6 +288,17 @@ return [
                 ],
             ],
             'list_columns' => ['post_id', 'platform', 'scheduled_at', 'status'],
+            'actions' => [
+                'publish_now' => [
+                    'label' => 'Publish Now',
+                    'icon' => '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>',
+                    'url' => fn($variant) => route('dashboard.post-variants.publish-now', $variant),
+                    'method' => 'POST',
+                    'confirm' => 'Are you sure you want to publish this post now?',
+                    'visible' => fn($variant) => in_array($variant->status, ['draft', 'scheduled', 'failed']),
+                    'class' => 'btn-primary',
+                ],
+            ],
         ],
 
         'publication-attempts' => [

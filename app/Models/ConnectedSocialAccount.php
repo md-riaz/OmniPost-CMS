@@ -15,6 +15,11 @@ class ConnectedSocialAccount extends Model
         'display_name',
         'token_id',
         'status',
+        'meta',
+    ];
+
+    protected $casts = [
+        'meta' => 'array',
     ];
 
     public function brand(): BelongsTo

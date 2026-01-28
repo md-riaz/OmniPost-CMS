@@ -4,8 +4,8 @@
 
 **Project**: OmniPost CMS - Unified Content & Campaign Management System  
 **Tagline**: One dashboard. Many platforms. Zero chaos.  
-**Current Phase**: Phase 3 Complete ✅  
-**Status**: OAuth Integration Ready for Publishing Engine
+**Current Phase**: Phase 4 Complete ✅  
+**Status**: Scheduling + Publishing Engine Ready
 
 ## ✅ Completed Phases
 
@@ -241,25 +241,180 @@ To test the OAuth integration:
 
 ---
 
-## 🚧 Upcoming Phases
+### Phase 4: Scheduling + Publishing Engine (Weeks 5-6) ✅
 
-### Phase 4: Scheduling + Publishing Engine (Weeks 5-6)
+**Completed:**
 
-**Planned:**
-- [ ] Publishing pipeline (job-based)
-- [ ] Scheduler command (find due variants every minute)
-- [ ] Facebook publishing connector
-- [ ] LinkedIn publishing connector
-- [ ] Retry logic with exponential backoff
-- [ ] Dead-letter queue handling
-- [ ] "Publish now" Tyro action
+1. **Platform Connector Publishing Methods** ✅
+   - Extended `PlatformConnector` interface with `publish()` method
+   - Returns `['external_post_id' => string, 'raw_response' => array]`
+   - Throws exceptions with appropriate error codes for handling
+   - Signature: `publish(string $targetId, string $text, string $accessToken, array $options = []): array`
 
-**Architecture Decision:**
-- Job queue for reliability
-- Status-driven state machine
-- Idempotency keys to prevent double-posting
+2. **Facebook Publishing** ✅
+   - Implemented `publish()` in `FacebookConnector`
+   - Posts to Facebook Page via Graph API: `POST /{page_id}/feed`
+   - Parameters: message, link (optional), page access token
+   - Error handling:
+     - 190 = Expired token (no retry)
+     - 613 = Rate limited (retry with backoff)
+     - Other errors = standard retry
+   - Returns Facebook post ID
+
+3. **LinkedIn Publishing** ✅
+   - Implemented `publish()` in `LinkedInConnector`
+   - Creates UGC posts via LinkedIn API: `POST /v2/ugcPosts`
+   - Parameters: author (org URN), text, link (optional)
+   - Proper REST protocol headers (X-Restli-Protocol-Version: 2.0.0)
+   - Error handling:
+     - 401 = Unauthorized/expired (no retry)
+     - 429 = Rate limited (retry with backoff)
+     - Other errors = standard retry
+   - Returns LinkedIn post URN
+
+4. **PublishVariantJob** ✅
+   - Queue job in `app/Jobs/PublishVariantJob.php`
+   - Properties:
+     - `$tries = 3` - Max 3 attempts
+     - `$backoff = [60, 300, 900]` - 1min, 5min, 15min exponential backoff
+     - `$timeout = 120` - 2 minute timeout per attempt
+   - Logic:
+     - Loads PostVariant with eager loading (post, connectedSocialAccount.token)
+     - Checks idempotency (skips if already published)
+     - Creates PublicationAttempt record (tracks timing, result, response)
+     - Refreshes token if needed via connector
+     - Gets text (variant override or post base_text)
+     - Gets access token (page token for Facebook, user token for LinkedIn)
+     - Calls connector's publish() method
+     - Updates variant status: publishing → published/failed
+     - Records external_post_id in PublicationAttempt
+   - Error handling:
+     - Token expired (190/401) → mark account as expired, don't retry
+     - Rate limited (613/429) → retry with backoff
+     - Other errors → standard retry
+     - After max retries → mark variant as 'failed'
+   - `failed()` method marks variant as failed permanently
+
+5. **Scheduler Command** ✅
+   - Created `SchedulePostsCommand` (`php artisan posts:schedule`)
+   - Runs every minute via Laravel scheduler
+   - Finds PostVariants where:
+     - `status = 'scheduled'`
+     - `scheduled_at <= now()`
+   - For each due variant:
+     - Updates status to 'publishing'
+     - Dispatches `PublishVariantJob`
+     - Logs dispatch event
+   - Returns count of dispatched jobs
+   - Error handling per variant (continues on failure)
+
+6. **Laravel Scheduler Integration** ✅
+   - Added to `routes/console.php`:
+     - `Schedule::command('posts:schedule')->everyMinute()`
+   - Requires cron entry: `* * * * * cd /path && php artisan schedule:run`
+   - Works alongside existing `oauth:watch-expiry` daily command
+
+7. **"Publish Now" Dashboard Action** ✅
+   - Created `PublishNowController` in `app/Http/Controllers/Dashboard/`
+   - Route: `POST /dashboard/post-variants/{variant}/publish-now`
+   - Protected by auth middleware
+   - Checks:
+     - Already published → warning message
+     - Already publishing → warning message
+   - Action:
+     - Sets status to 'publishing'
+     - Dispatches `PublishVariantJob` immediately
+     - Returns success message with redirect
+   - Error handling with user feedback
+
+8. **Tyro Dashboard Resource Actions** ✅
+   - Added `actions` configuration to post-variants resource
+   - "Publish Now" button:
+     - Icon: Lightning bolt SVG
+     - Label: "Publish Now"
+     - Method: POST
+     - Confirm dialog: "Are you sure you want to publish this post now?"
+     - Visible when: status is draft, scheduled, or failed
+     - CSS class: btn-primary
+     - URL: dynamic route with variant parameter
+
+9. **Idempotency Protection** ✅
+   - Job checks for existing successful PublicationAttempt
+   - If external_post_id exists → skip and log warning
+   - Prevents accidental double-posting
+   - Safe to retry jobs without side effects
+
+10. **Publication Audit Trail** ✅
+    - Every publish attempt recorded in `publication_attempts` table
+    - Fields populated:
+      - attempt_no (1, 2, 3)
+      - queued_at, started_at, finished_at
+      - result (success/fail)
+      - external_post_id (Facebook/LinkedIn post ID)
+      - error_code, error_message
+      - raw_response (full API response as JSON)
+    - Debugging-friendly: see exactly what happened
+
+11. **Model Updates** ✅
+    - Added `meta` field to ConnectedSocialAccount fillable
+    - Added `meta` cast to array in ConnectedSocialAccount
+    - Allows storing page_access_token for Facebook pages
+    - PostVariant already has `isDue()` helper method
+
+**Architecture Decisions:**
+
+- **Queue-Based Publishing**: Uses Laravel's database queue for reliability and retries
+- **Status Flow**: scheduled → publishing → published/failed (clear state machine)
+- **Exponential Backoff**: 1min, 5min, 15min between retries (prevents API hammering)
+- **Platform-Specific Error Handling**: Different retry strategies for token vs rate limit errors
+- **Token Refresh Integration**: Seamlessly uses existing OAuth refresh logic
+- **Comprehensive Logging**: Every step logged for debugging (Log::info, Log::error)
+- **Defensive Programming**: Null checks, relationship loading, exception handling everywhere
+
+**Key Files:**
+
+- `app/Contracts/PlatformConnector.php` - Added publish() to interface
+- `app/Services/Platforms/FacebookConnector.php` - Implemented Facebook publishing
+- `app/Services/Platforms/LinkedInConnector.php` - Implemented LinkedIn publishing
+- `app/Jobs/PublishVariantJob.php` - Main publishing job with retry logic
+- `app/Console/Commands/SchedulePostsCommand.php` - Scheduler command
+- `app/Http/Controllers/Dashboard/PublishNowController.php` - Dashboard action
+- `routes/console.php` - Registered scheduler command
+- `routes/web.php` - Added publish-now route
+- `config/tyro-dashboard.php` - Added action to post-variants resource
+- `app/Models/ConnectedSocialAccount.php` - Added meta field support
+
+**Testing Checklist:**
+
+To test the publishing engine:
+
+1. **Setup Queue Worker**: `php artisan queue:work --tries=3`
+2. **Create Test Data**:
+   - Create a brand
+   - Connect Facebook/LinkedIn account via OAuth
+   - Create a post with base_text
+   - Create a post variant with scheduled_at in the past
+   - Set variant status to 'scheduled'
+3. **Test Scheduler**: `php artisan posts:schedule` (should dispatch job)
+4. **Verify Publishing**: Check logs, publication_attempts table, variant status
+5. **Test "Publish Now"**: Click button in dashboard, verify immediate dispatch
+6. **Test Retry Logic**: Simulate API error, verify retries with backoff
+7. **Test Idempotency**: Try publishing same variant twice, verify skip
+8. **Test Token Expiry**: Use expired token, verify account marked as expired
+
+**Production Requirements:**
+
+1. **Cron Setup**: Add to crontab: `* * * * * cd /path && php artisan schedule:run >> /dev/null 2>&1`
+2. **Queue Worker**: Run as daemon with supervisor or systemd: `php artisan queue:work --tries=3 --timeout=120`
+3. **Queue Monitoring**: Consider Laravel Horizon for queue visibility
+4. **Failed Jobs**: Monitor `failed_jobs` table, retry with: `php artisan queue:retry all`
+5. **Logging**: Ensure adequate disk space for logs in `storage/logs/`
+
+**Key Achievement**: Complete end-to-end publishing pipeline with retry logic, error handling, and dashboard integration!
 
 ---
+
+## 🚧 Upcoming Phases
 
 ### Phase 5: Workflow - Approval, Collaboration, Calendar (Weeks 7-8)
 
@@ -307,12 +462,12 @@ To test the OAuth integration:
 | Phase 1: Foundation | ✅ Complete | 100% |
 | Phase 2: Domain Model | ✅ Complete | 100% |
 | Phase 3: OAuth | ✅ Complete | 100% |
-| Phase 4: Publishing | 🚧 Planned | 0% |
+| Phase 4: Publishing | ✅ Complete | 100% |
 | Phase 5: Workflow | 🚧 Planned | 0% |
 | Phase 6: Analytics | 🚧 Planned | 0% |
 | Phase 7: Hardening | 🚧 Planned | 0% |
 
-**Overall Progress**: 42.9% (3/7 phases)
+**Overall Progress**: 57.1% (4/7 phases)
 
 ---
 

@@ -173,4 +173,85 @@ class LinkedInConnector implements PlatformConnector
             throw $e;
         }
     }
+
+    public function publish(string $targetId, string $text, string $accessToken, array $options = []): array
+    {
+        try {
+            $payload = [
+                'author' => $targetId,
+                'lifecycleState' => 'PUBLISHED',
+                'specificContent' => [
+                    'com.linkedin.ugc.ShareContent' => [
+                        'shareCommentary' => [
+                            'text' => $text,
+                        ],
+                        'shareMediaCategory' => 'NONE',
+                    ],
+                ],
+                'visibility' => [
+                    'com.linkedin.ugc.MemberNetworkVisibility' => 'PUBLIC',
+                ],
+            ];
+
+            // Add optional link
+            if (!empty($options['link'])) {
+                $payload['specificContent']['com.linkedin.ugc.ShareContent']['shareMediaCategory'] = 'ARTICLE';
+                $payload['specificContent']['com.linkedin.ugc.ShareContent']['media'] = [
+                    [
+                        'status' => 'READY',
+                        'originalUrl' => $options['link'],
+                    ],
+                ];
+            }
+
+            $response = $this->client->post('https://api.linkedin.com/v2/ugcPosts', [
+                'headers' => [
+                    'Authorization' => 'Bearer ' . $accessToken,
+                    'Content-Type' => 'application/json',
+                    'X-Restli-Protocol-Version' => '2.0.0',
+                    'LinkedIn-Version' => '202401',
+                ],
+                'json' => $payload,
+            ]);
+
+            $data = json_decode($response->getBody()->getContents(), true);
+
+            if (empty($data['id'])) {
+                throw new \Exception('LinkedIn API did not return post ID');
+            }
+
+            Log::info('Successfully published to LinkedIn', [
+                'org_id' => $targetId,
+                'post_id' => $data['id'],
+            ]);
+
+            return [
+                'external_post_id' => $data['id'],
+                'raw_response' => $data,
+            ];
+        } catch (\GuzzleHttp\Exception\RequestException $e) {
+            $statusCode = $e->getResponse()?->getStatusCode();
+            $responseBody = $e->getResponse()?->getBody()->getContents();
+            $errorData = json_decode($responseBody, true);
+
+            Log::error('Failed to publish to LinkedIn', [
+                'org_id' => $targetId,
+                'status_code' => $statusCode,
+                'error' => $e->getMessage(),
+                'response' => $responseBody,
+            ]);
+
+            // Check for token expiry (401 = unauthorized/expired)
+            if ($statusCode == 401) {
+                throw new \Exception('Token expired: ' . ($errorData['message'] ?? 'Unauthorized'), 401);
+            }
+
+            // Check for rate limiting (429 = too many requests)
+            if ($statusCode == 429) {
+                throw new \Exception('Rate limited: ' . ($errorData['message'] ?? 'Too many requests'), 429);
+            }
+
+            throw new \Exception('Failed to publish to LinkedIn: ' . ($errorData['message'] ?? $e->getMessage()), $statusCode ?? 500);
+        }
+    }
 }
