@@ -49,6 +49,21 @@ class TokenExpiryWatcher extends Command
             }
         }
 
+        // Send notifications for expiring tokens
+        if ($expiringTokens->count() > 0) {
+            $admins = \App\Models\User::whereHas('roles', function ($query) {
+                $query->where('slug', 'admin');
+            })->get();
+
+            foreach ($expiringTokens as $token) {
+                foreach ($admins as $admin) {
+                    $admin->notify(new \App\Notifications\TokenExpiringNotification($token));
+                }
+            }
+
+            $this->info("Sent expiry notifications to {$admins->count()} admin(s)");
+        }
+
         // Attempt to refresh tokens if --refresh flag is set
         if ($this->option('refresh')) {
             $this->info('Attempting to refresh expiring tokens...');

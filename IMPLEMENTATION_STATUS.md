@@ -4,8 +4,8 @@
 
 **Project**: OmniPost CMS - Unified Content & Campaign Management System  
 **Tagline**: One dashboard. Many platforms. Zero chaos.  
-**Current Phase**: Phase 4 Complete ✅  
-**Status**: Scheduling + Publishing Engine Ready
+**Current Phase**: Phase 5 Complete ✅  
+**Status**: Workflow, Approval, Collaboration & Calendar Ready
 
 ## ✅ Completed Phases
 
@@ -414,19 +414,131 @@ To test the publishing engine:
 
 ---
 
-## 🚧 Upcoming Phases
+### Phase 5: Workflow - Approval, Collaboration, Calendar (Weeks 7-8) ✅
 
-### Phase 5: Workflow - Approval, Collaboration, Calendar (Weeks 7-8)
+**Delivered:**
 
-**Planned:**
-- [ ] Status machine enforcement (draft → pending → approved → scheduled)
-- [ ] Role-based readonly rules (editors can't approve)
-- [ ] Comments on posts (threaded)
-- [ ] Calendar endpoint (JSON API)
-- [ ] Calendar UI (FullCalendar.js or similar)
-- [ ] Notifications (approval needed, approved, failed publish)
+**1. Status Machine Enforcement** ✅
+   - Implemented `PostStatusService` with finite state machine
+   - Valid transitions:
+     - `draft → pending` (submit for approval)
+     - `pending → approved` (approve)
+     - `pending → draft` (reject with feedback)
+     - `approved → scheduled` (when variants scheduled)
+     - `scheduled → publishing` (automatically by scheduler)
+     - `publishing → published/failed` (after publishing)
+   - Invalid transitions blocked with exception
+   - All transitions tracked in `post_status_changes` table
+
+**2. PostStatusChange Model** ✅
+   - Migration: `post_status_changes` table
+   - Fields: post_id, from_status, to_status, changed_by, reason, changed_at
+   - Tracks who changed status and why
+   - Used for rejection feedback and audit trail
+   - Relationships: belongsTo(Post, User as changedBy)
+
+**3. Comments System** ✅
+   - Migration: `post_comments` table with threading support
+   - Fields: post_id, user_id, parent_id, comment_text, timestamps
+   - PostComment model with parent/replies relationships
+   - Threaded comments UI with reply functionality
+   - Comment notifications to post creator
+   - View: `resources/views/dashboard/post-comments.blade.php`
+
+**4. Role-Based Workflow Rules** ✅
+   - Created `PostPolicy` with granular permissions:
+     - Editors: Can create/edit drafts, submit for approval
+     - Approvers: Can approve/reject pending posts
+     - Admins: Can do everything
+   - Integrated with Tyro RBAC system
+   - Authorization checks in all workflow controllers
+   - Created "approver" role with appropriate privileges
+
+**5. Notification System** ✅
+   - Migration: `notifications` table (Laravel notifications)
+   - Notification classes created:
+     - `PostSubmittedForApproval` → sent to approvers
+     - `PostApproved` → sent to post creator
+     - `PostRejected` → sent to creator with reason
+     - `PublishingFailed` → sent to admins and creator
+     - `TokenExpiringNotification` → sent to admins
+     - `PostCommentAdded` → sent to post creator
+   - Both email and database channels
+   - Integrated with existing TokenExpiryWatcher command
+   - Integrated with PublishVariantJob for failure notifications
+
+**6. Workflow Actions in Dashboard** ✅
+   - Updated Tyro Dashboard posts resource with actions:
+     - "Submit for Approval" (visible for draft posts)
+     - "Approve" (visible for pending posts, approvers only)
+     - "Reject" (visible for pending posts, with reason prompt)
+     - "Comments" (view/add comments and status history)
+   - Routes: `/dashboard/posts/{post}/submit-for-approval`, approve, reject, comments
+   - Controller: `PostWorkflowController` with policy authorization
+   - Status field made read-only (changed via actions only)
+
+**7. Calendar API** ✅
+   - Endpoint: `GET /api/calendar`
+   - Controller: `CalendarController`
+   - Returns scheduled PostVariants in FullCalendar format
+   - Filters: brand_id, platform, status, date range
+   - Response includes:
+     - Event ID, title, start time
+     - Platform, status, brand name
+     - Color coding by platform and status
+     - Link to variant details
+   - Reschedule endpoint: `POST /api/calendar/{variant}/reschedule`
+
+**8. Calendar UI** ✅
+   - View: `resources/views/dashboard/calendar.blade.php`
+   - Integrated FullCalendar.js v6.1.10
+   - Features:
+     - Month/week/day/list views
+     - Brand, platform, status filters
+     - Color coding: Facebook (blue), LinkedIn (blue), Failed (red), Published (green)
+     - Click event → navigate to variant details
+     - Drag-drop rescheduling with confirmation
+     - Event content shows title, brand, platform
+   - Route: `/dashboard/calendar`
+   - Legend showing color meanings
+
+**9. Change Request (Rejection) System** ✅
+   - Rejection requires reason (validated)
+   - Reason stored in post_status_changes
+   - Visible in status history on comments page
+   - Status history shows:
+     - From/to status
+     - Changed by user
+     - Timestamp
+     - Reason (if provided)
+
+**Database Changes:**
+- ✅ 3 new tables: notifications, post_comments, post_status_changes
+- ✅ Post model extended with comments() and statusChanges() relationships
+- ✅ User model already has Notifiable trait
+
+**Code Architecture:**
+- ✅ Services: PostStatusService (state machine logic)
+- ✅ Policies: PostPolicy (authorization rules)
+- ✅ Controllers: PostWorkflowController, CalendarController
+- ✅ Notifications: 6 notification classes
+- ✅ Views: calendar.blade.php, post-comments.blade.php
+
+**Testing Checklist:**
+- ✅ Migrations run successfully
+- ✅ Approver role created with privileges
+- ✅ Status transitions validated
+- ✅ Comments system functional with threading
+- ✅ Calendar API returns correct data
+- ✅ Calendar UI renders with FullCalendar
+- ✅ Notifications integrate with existing systems
+- ⏳ End-to-end workflow testing (manual)
+
+**Key Achievement**: Complete team collaboration workflow with approval process, comments, notifications, and visual calendar!
 
 ---
+
+## 🚧 Upcoming Phases
 
 ### Phase 6: Analytics + Reporting (Weeks 9-10)
 
@@ -463,11 +575,11 @@ To test the publishing engine:
 | Phase 2: Domain Model | ✅ Complete | 100% |
 | Phase 3: OAuth | ✅ Complete | 100% |
 | Phase 4: Publishing | ✅ Complete | 100% |
-| Phase 5: Workflow | 🚧 Planned | 0% |
+| Phase 5: Workflow | ✅ Complete | 100% |
 | Phase 6: Analytics | 🚧 Planned | 0% |
 | Phase 7: Hardening | 🚧 Planned | 0% |
 
-**Overall Progress**: 57.1% (4/7 phases)
+**Overall Progress**: 71.4% (5/7 phases)
 
 ---
 

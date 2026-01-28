@@ -189,9 +189,22 @@ class PublishVariantJob implements ShouldQueue
             'exception' => $exception->getMessage(),
         ]);
 
-        $variant = PostVariant::find($this->variantId);
+        $variant = PostVariant::with('post.creator')->find($this->variantId);
         if ($variant) {
             $variant->update(['status' => 'failed']);
+
+            // Notify admins and post creator
+            $admins = \App\Models\User::whereHas('roles', function ($query) {
+                $query->where('slug', 'admin');
+            })->get();
+
+            foreach ($admins as $admin) {
+                $admin->notify(new \App\Notifications\PublishingFailed($variant, $exception->getMessage()));
+            }
+
+            if ($variant->post && $variant->post->creator) {
+                $variant->post->creator->notify(new \App\Notifications\PublishingFailed($variant, $exception->getMessage()));
+            }
         }
     }
 }
