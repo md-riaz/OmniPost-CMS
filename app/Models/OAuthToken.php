@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\Crypt;
 
 class OAuthToken extends Model
 {
+    protected $table = 'oauth_tokens';
+
     protected $fillable = [
         'platform',
         'access_token',
@@ -57,3 +59,4 @@ class OAuthToken extends Model
         return $this->expires_at && $this->expires_at->isPast();
     }
 }
+

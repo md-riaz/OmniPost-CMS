@@ -67,6 +67,117 @@ OmniPost CMS is a Laravel-based content management system built with Tyro Dashbo
 
 That's it! No complex setup, no configuration files to create. Just install and run! 🚀
 
+## OAuth Configuration
+
+### Setting Up Facebook OAuth
+
+1. **Create a Facebook App**
+   - Go to [Facebook Developers](https://developers.facebook.com/apps/)
+   - Create a new app or select an existing one
+   - Choose "Business" as the app type
+
+2. **Configure OAuth Settings**
+   - In your app dashboard, go to "Settings" → "Basic"
+   - Copy your App ID and App Secret
+   - Add `http://localhost:8000/oauth/facebook/callback` to "Valid OAuth Redirect URIs" under "Facebook Login" settings
+
+3. **Request Required Permissions**
+   - Go to "App Review" → "Permissions and Features"
+   - Request these permissions:
+     - `pages_show_list` - View your Pages
+     - `pages_read_engagement` - Read your Pages data
+     - `pages_manage_posts` - Publish and manage your Pages posts
+
+4. **Update .env File**
+   ```bash
+   FACEBOOK_CLIENT_ID=your_actual_app_id
+   FACEBOOK_CLIENT_SECRET=your_actual_app_secret
+   FACEBOOK_GRAPH_API_VERSION=v18.0
+   ```
+
+### Setting Up LinkedIn OAuth
+
+1. **Create a LinkedIn App**
+   - Go to [LinkedIn Developers](https://www.linkedin.com/developers/apps/)
+   - Create a new app
+   - Fill in the required information
+
+2. **Configure OAuth Settings**
+   - In your app settings, go to the "Auth" tab
+   - Copy your Client ID and Client Secret
+   - Add `http://localhost:8000/oauth/linkedin/callback` to "Authorized redirect URLs"
+
+3. **Request Required Permissions**
+   - Go to the "Products" tab
+   - Add these products:
+     - Marketing Developer Platform (for posting to organizations)
+     - Sign In with LinkedIn (for basic authentication)
+   - You'll need these scopes:
+     - `r_organization_social` - Read organization social media content
+     - `w_organization_social` - Write organization social media content
+     - `rw_organization_admin` - Administer organization pages
+
+4. **Update .env File**
+   ```bash
+   LINKEDIN_CLIENT_ID=your_actual_client_id
+   LINKEDIN_CLIENT_SECRET=your_actual_client_secret
+   ```
+
+### Connecting Social Accounts
+
+Once you've configured the OAuth credentials:
+
+1. **Log in to the dashboard**
+   - Navigate to http://localhost:8000/dashboard
+
+2. **Create a Brand** (if not exists)
+   - Go to "Brands" resource
+   - Create a new brand
+
+3. **Connect Facebook Pages**
+   - Visit: `http://localhost:8000/oauth/facebook/redirect?brand_id=1`
+   - You'll be redirected to Facebook to authorize
+   - Select the pages you want to connect
+   - You'll be redirected back with connected accounts
+
+4. **Connect LinkedIn Organizations**
+   - Visit: `http://localhost:8000/oauth/linkedin/redirect?brand_id=1`
+   - You'll be redirected to LinkedIn to authorize
+   - Select the organizations you want to connect
+   - You'll be redirected back with connected accounts
+
+5. **View Connected Accounts**
+   - Go to "Connected Accounts" resource in the dashboard
+   - You'll see all your connected Facebook Pages and LinkedIn Organizations
+
+### Managing OAuth Tokens
+
+**Manual Token Expiry Check**:
+```bash
+php artisan oauth:watch-expiry
+```
+
+**Auto-refresh Expiring Tokens**:
+```bash
+php artisan oauth:watch-expiry --refresh
+```
+
+**Automatic Scheduled Refresh**:
+The system automatically runs the token expiry watcher nightly. To enable scheduled tasks:
+```bash
+php artisan schedule:work
+```
+
+**Disconnecting an Account**:
+- Go to the "Connected Accounts" resource
+- Find the account you want to disconnect
+- The status will be updated to "revoked"
+
+**Reconnecting an Expired Account**:
+- Use the reconnect URL: `/oauth/accounts/{account_id}/reconnect`
+- This will initiate a new OAuth flow for that specific account
+
+
 ## Default Login Credentials
 
 - **Email**: `admin@omnipost.local`
@@ -185,10 +296,12 @@ The following resources are available in the Tyro Dashboard:
 - Tyro Dashboard resources
 - RBAC privileges
 
-### 🚧 Phase 3: OAuth Integration (Upcoming)
-- Facebook Pages connector
-- LinkedIn Organizations connector
-- Token management
+### ✅ Phase 3: OAuth Integration (Complete)
+- Platform connector interface
+- Facebook Pages OAuth integration
+- LinkedIn Organizations OAuth integration
+- Token management and auto-refresh
+- Token expiry watcher command
 
 ### 📋 Phase 4: Publishing Engine (Planned)
 - Job queue system

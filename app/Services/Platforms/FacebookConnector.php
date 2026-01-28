@@ -1,0 +1,166 @@
+<?php
+
+namespace App\Services\Platforms;
+
+use App\Contracts\PlatformConnector;
+use App\Models\OAuthToken;
+use GuzzleHttp\Client;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
+
+class FacebookConnector implements PlatformConnector
+{
+    private Client $client;
+    private string $appId;
+    private string $appSecret;
+    private string $graphApiVersion;
+
+    public function __construct()
+    {
+        $this->client = new Client([
+            'timeout' => 30,
+        ]);
+        $this->appId = config('services.facebook.client_id');
+        $this->appSecret = config('services.facebook.client_secret');
+        $this->graphApiVersion = config('services.facebook.graph_api_version', 'v18.0');
+    }
+
+    public function getPlatform(): string
+    {
+        return 'facebook';
+    }
+
+    public function getAuthUrl(string $redirectUri, array $state = []): string
+    {
+        $params = [
+            'client_id' => $this->appId,
+            'redirect_uri' => $redirectUri,
+            'state' => base64_encode(json_encode($state)),
+            'scope' => implode(',', [
+                'pages_show_list',
+                'pages_read_engagement',
+                'pages_manage_posts',
+            ]),
+        ];
+
+        return 'https://www.facebook.com/' . $this->graphApiVersion . '/dialog/oauth?' . http_build_query($params);
+    }
+
+    public function handleCallback(string $code, array $state = []): OAuthToken
+    {
+        $response = $this->client->get('https://graph.facebook.com/' . $this->graphApiVersion . '/oauth/access_token', [
+            'query' => [
+                'client_id' => $this->appId,
+                'client_secret' => $this->appSecret,
+                'code' => $code,
+                'redirect_uri' => route('oauth.callback', ['platform' => 'facebook']),
+            ],
+        ]);
+
+        $data = json_decode($response->getBody()->getContents(), true);
+
+        // Get long-lived token
+        $longLivedResponse = $this->client->get('https://graph.facebook.com/' . $this->graphApiVersion . '/oauth/access_token', [
+            'query' => [
+                'grant_type' => 'fb_exchange_token',
+                'client_id' => $this->appId,
+                'client_secret' => $this->appSecret,
+                'fb_exchange_token' => $data['access_token'],
+            ],
+        ]);
+
+        $longLivedData = json_decode($longLivedResponse->getBody()->getContents(), true);
+
+        $token = OAuthToken::create([
+            'platform' => 'facebook',
+            'access_token' => $longLivedData['access_token'],
+            'refresh_token' => null, // Facebook doesn't use refresh tokens
+            'expires_at' => isset($longLivedData['expires_in']) 
+                ? now()->addSeconds($longLivedData['expires_in']) 
+                : now()->addDays(60), // Default 60 days for long-lived tokens
+            'scopes' => ['pages_show_list', 'pages_read_engagement', 'pages_manage_posts'],
+            'meta' => [
+                'token_type' => $longLivedData['token_type'] ?? 'bearer',
+            ],
+        ]);
+
+        Log::info('Facebook OAuth token created', ['token_id' => $token->id]);
+
+        return $token;
+    }
+
+    public function refreshToken(OAuthToken $token): OAuthToken
+    {
+        // Facebook long-lived tokens don't have a traditional refresh mechanism
+        // Instead, we exchange the old token for a new one
+        try {
+            $response = $this->client->get('https://graph.facebook.com/' . $this->graphApiVersion . '/oauth/access_token', [
+                'query' => [
+                    'grant_type' => 'fb_exchange_token',
+                    'client_id' => $this->appId,
+                    'client_secret' => $this->appSecret,
+                    'fb_exchange_token' => $token->access_token,
+                ],
+            ]);
+
+            $data = json_decode($response->getBody()->getContents(), true);
+
+            $token->update([
+                'access_token' => $data['access_token'],
+                'expires_at' => isset($data['expires_in']) 
+                    ? now()->addSeconds($data['expires_in']) 
+                    : now()->addDays(60),
+            ]);
+
+            Log::info('Facebook token refreshed', ['token_id' => $token->id]);
+
+            return $token->fresh();
+        } catch (\Exception $e) {
+            Log::error('Failed to refresh Facebook token', [
+                'token_id' => $token->id,
+                'error' => $e->getMessage(),
+            ]);
+            throw $e;
+        }
+    }
+
+    public function refreshTokenIfNeeded(OAuthToken $token): OAuthToken
+    {
+        // Refresh if token expires in less than 7 days
+        if ($token->expires_at && $token->expires_at->subDays(7)->isPast()) {
+            return $this->refreshToken($token);
+        }
+
+        return $token;
+    }
+
+    public function listPublishTargets(OAuthToken $token): Collection
+    {
+        try {
+            $response = $this->client->get('https://graph.facebook.com/' . $this->graphApiVersion . '/me/accounts', [
+                'query' => [
+                    'access_token' => $token->access_token,
+                    'fields' => 'id,name,access_token',
+                ],
+            ]);
+
+            $data = json_decode($response->getBody()->getContents(), true);
+
+            return collect($data['data'] ?? [])->map(function ($page) {
+                return [
+                    'external_id' => $page['id'],
+                    'display_name' => $page['name'],
+                    'meta' => [
+                        'page_access_token' => $page['access_token'],
+                    ],
+                ];
+            });
+        } catch (\Exception $e) {
+            Log::error('Failed to list Facebook pages', [
+                'token_id' => $token->id,
+                'error' => $e->getMessage(),
+            ]);
+            throw $e;
+        }
+    }
+}
