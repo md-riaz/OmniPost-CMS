@@ -28,6 +28,8 @@ class OAuthController extends Controller
             'brand_id' => 'required|exists:brands,id',
         ]);
 
+        $this->authorize('create', ConnectedSocialAccount::class);
+
         $brand = Brand::findOrFail($request->input('brand_id'));
 
         $connector = $this->getConnector($platform);
@@ -67,10 +69,18 @@ class OAuthController extends Controller
         try {
             $state = json_decode(base64_decode($stateEncoded), true);
             $brandId = $state['brand_id'] ?? null;
+            $stateUserId = $state['user_id'] ?? null;
 
             if (!$brandId) {
                 throw new \Exception('Missing brand_id in state');
             }
+
+            // Verify the user_id in state matches the current user
+            if ($stateUserId && $request->user()->id !== $stateUserId) {
+                throw new \Exception('User ID mismatch - potential authorization bypass attempt');
+            }
+
+            $this->authorize('create', ConnectedSocialAccount::class);
 
             $brand = Brand::findOrFail($brandId);
             $connector = $this->getConnector($platform);
@@ -137,7 +147,7 @@ class OAuthController extends Controller
             ]);
 
             return redirect()->route('dashboard')
-                ->with('error', 'Failed to connect account: ' . $e->getMessage());
+                ->with('error', 'Failed to connect account. Please try again.');
         }
     }
 
@@ -168,6 +178,9 @@ class OAuthController extends Controller
     {
         $this->authorize('update', $account);
 
-        return $this->redirect($request->merge(['brand_id' => $account->brand_id]), $account->platform);
+        $redirectRequest = $request->duplicate();
+        $redirectRequest->merge(['brand_id' => $account->brand_id]);
+
+        return $this->redirect($redirectRequest, $account->platform);
     }
 }

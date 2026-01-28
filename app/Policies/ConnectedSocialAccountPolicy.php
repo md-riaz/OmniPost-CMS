@@ -42,4 +42,3 @@ class ConnectedSocialAccountPolicy
         return $user->hasPrivilege('channel.manage');
     }
 }
-

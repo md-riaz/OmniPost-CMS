@@ -115,10 +115,11 @@ class FacebookConnector implements PlatformConnector
             Log::info('Facebook token refreshed', ['token_id' => $token->id]);
 
             return $token->fresh();
-        } catch (\Exception $e) {
+        } catch (\GuzzleHttp\Exception\RequestException $e) {
             Log::error('Failed to refresh Facebook token', [
                 'token_id' => $token->id,
                 'error' => $e->getMessage(),
+                'status_code' => $e->getResponse()?->getStatusCode(),
             ]);
             throw $e;
         }
@@ -127,7 +128,7 @@ class FacebookConnector implements PlatformConnector
     public function refreshTokenIfNeeded(OAuthToken $token): OAuthToken
     {
         // Refresh if token expires in less than 7 days
-        if ($token->expires_at && $token->expires_at->subDays(7)->isPast()) {
+        if ($token->expires_at && $token->expires_at->lt(now()->addDays(7))) {
             return $this->refreshToken($token);
         }
 
@@ -155,10 +156,11 @@ class FacebookConnector implements PlatformConnector
                     ],
                 ];
             });
-        } catch (\Exception $e) {
+        } catch (\GuzzleHttp\Exception\RequestException $e) {
             Log::error('Failed to list Facebook pages', [
                 'token_id' => $token->id,
                 'error' => $e->getMessage(),
+                'status_code' => $e->getResponse()?->getStatusCode(),
             ]);
             throw $e;
         }

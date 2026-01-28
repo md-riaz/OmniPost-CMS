@@ -19,12 +19,14 @@ class TokenExpiryWatcher extends Command
     {
         $this->info('Checking OAuth tokens for expiry...');
 
-        $expiringTokens = OAuthToken::whereNotNull('expires_at')
+        $expiringTokens = OAuthToken::with('connectedSocialAccounts')
+            ->whereNotNull('expires_at')
             ->where('expires_at', '<=', now()->addDays(7))
             ->where('expires_at', '>', now())
             ->get();
 
-        $expiredTokens = OAuthToken::whereNotNull('expires_at')
+        $expiredTokens = OAuthToken::with('connectedSocialAccounts')
+            ->whereNotNull('expires_at')
             ->where('expires_at', '<=', now())
             ->get();
 
@@ -54,15 +56,18 @@ class TokenExpiryWatcher extends Command
             foreach ($expiringTokens as $token) {
                 try {
                     $connector = $this->getConnector($token->platform);
+                    $oldExpiresAt = $token->expires_at?->toDateTimeString();
                     $refreshedToken = $connector->refreshTokenIfNeeded($token);
+                    $newExpiresAt = $refreshedToken->expires_at?->toDateTimeString();
                     
-                    if ($refreshedToken->wasChanged()) {
+                    if ($oldExpiresAt !== $newExpiresAt) {
                         $this->info("Refreshed token for {$token->platform} (ID: {$token->id})");
                         
                         Log::info('OAuth token refreshed', [
                             'token_id' => $token->id,
                             'platform' => $token->platform,
-                            'new_expires_at' => $refreshedToken->expires_at,
+                            'old_expires_at' => $oldExpiresAt,
+                            'new_expires_at' => $newExpiresAt,
                         ]);
                     }
                 } catch (\Exception $e) {
@@ -97,4 +102,3 @@ class TokenExpiryWatcher extends Command
         };
     }
 }
-
