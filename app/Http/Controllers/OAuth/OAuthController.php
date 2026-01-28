@@ -6,6 +6,7 @@ use App\Contracts\PlatformConnector;
 use App\Http\Controllers\Controller;
 use App\Models\Brand;
 use App\Models\ConnectedSocialAccount;
+use App\Models\AuditLog;
 use App\Services\Platforms\FacebookConnector;
 use App\Services\Platforms\LinkedInConnector;
 use Illuminate\Http\Request;
@@ -114,7 +115,7 @@ class OAuthController extends Controller
                 }
 
                 // Create or update connected account
-                ConnectedSocialAccount::updateOrCreate(
+                $connectedAccount = ConnectedSocialAccount::updateOrCreate(
                     [
                         'brand_id' => $brand->id,
                         'platform' => $platform,
@@ -126,6 +127,12 @@ class OAuthController extends Controller
                         'status' => 'connected',
                     ]
                 );
+
+                // Audit log
+                AuditLog::log('account_connected', $connectedAccount, [
+                    'platform' => $platform,
+                    'account_name' => $target['display_name'],
+                ]);
 
                 $accountsCreated++;
             }
@@ -157,6 +164,12 @@ class OAuthController extends Controller
 
         try {
             $account->update(['status' => 'revoked']);
+
+            // Audit log
+            AuditLog::log('account_disconnected', $account, [
+                'platform' => $account->platform,
+                'account_name' => $account->display_name,
+            ]);
 
             Log::info('Account disconnected', [
                 'account_id' => $account->id,

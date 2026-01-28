@@ -5,14 +5,19 @@ namespace App\Jobs;
 use App\Contracts\PlatformConnector;
 use App\Models\PostVariant;
 use App\Models\PublicationAttempt;
+use App\Models\AuditLog;
 use App\Services\Platforms\FacebookConnector;
 use App\Services\Platforms\LinkedInConnector;
+use App\Services\PlatformRateLimiter;
+use App\Services\CrisisMode;
+use App\Notifications\AdminAlert;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Notification;
 
 class PublishVariantJob implements ShouldQueue
 {
@@ -27,7 +32,7 @@ class PublishVariantJob implements ShouldQueue
         public int $attemptNumber = 1
     ) {}
 
-    public function handle(): void
+    public function handle(PlatformRateLimiter $rateLimiter, CrisisMode $crisisMode): void
     {
         $variant = PostVariant::with([
             'post',
@@ -40,17 +45,43 @@ class PublishVariantJob implements ShouldQueue
             return;
         }
 
+        // Check crisis mode
+        $brandId = $variant->connectedSocialAccount->brand_id;
+        if ($crisisMode->isActive($brandId, $variant->platform)) {
+            Log::warning('Crisis mode active, skipping publication', [
+                'variant_id' => $this->variantId,
+                'brand_id' => $brandId,
+                'platform' => $variant->platform,
+            ]);
+            return;
+        }
+
+        // Generate idempotency key
+        $idempotencyKey = hash('sha256', "variant:{$variant->id}:attempt:{$this->attemptNumber}:" . now()->timestamp);
+
         // Check if already published (idempotency)
-        $lastAttempt = $variant->publicationAttempts()
+        $existingAttempt = PublicationAttempt::where('post_variant_id', $variant->id)
             ->where('result', 'success')
             ->whereNotNull('external_post_id')
             ->first();
 
-        if ($lastAttempt) {
+        if ($existingAttempt) {
             Log::warning('PostVariant already published, skipping', [
                 'variant_id' => $this->variantId,
-                'external_post_id' => $lastAttempt->external_post_id,
+                'external_post_id' => $existingAttempt->external_post_id,
             ]);
+            return;
+        }
+
+        // Check rate limiter
+        $accountId = $variant->connectedSocialAccount->id;
+        if (!$rateLimiter->canMakeRequest($variant->platform, $accountId)) {
+            $waitTime = $rateLimiter->waitTime($variant->platform, $accountId);
+            Log::info('Rate limit reached, delaying job', [
+                'platform' => $variant->platform,
+                'wait_time' => $waitTime,
+            ]);
+            $this->release($waitTime);
             return;
         }
 
@@ -58,6 +89,7 @@ class PublishVariantJob implements ShouldQueue
         $attempt = PublicationAttempt::create([
             'post_variant_id' => $variant->id,
             'attempt_no' => $this->attemptNumber,
+            'idempotency_key' => $idempotencyKey,
             'queued_at' => now(),
             'started_at' => now(),
         ]);
@@ -78,6 +110,13 @@ class PublishVariantJob implements ShouldQueue
             } catch (\Exception $e) {
                 // Token refresh failed - mark account as expired
                 $account->update(['status' => 'expired']);
+                $rateLimiter->recordFailure($variant->platform, $accountId);
+                
+                // Notify admins
+                $this->notifyAdmins(
+                    AdminAlert::tokenRefreshFailed($variant->platform, $account->account_name)
+                );
+                
                 throw new \Exception('Token expired and could not be refreshed: ' . $e->getMessage(), 401);
             }
 
@@ -102,6 +141,10 @@ class PublishVariantJob implements ShouldQueue
             // Publish to platform
             $result = $connector->publish($targetId, $text, $accessToken, $options);
 
+            // Record successful API call
+            $rateLimiter->recordRequest($variant->platform, $accountId);
+            $rateLimiter->recordSuccess($variant->platform, $accountId);
+
             // Success - update attempt and variant
             $attempt->update([
                 'finished_at' => now(),
@@ -114,6 +157,12 @@ class PublishVariantJob implements ShouldQueue
                 'status' => 'published',
             ]);
 
+            // Audit log
+            AuditLog::log('post_published', $variant, [
+                'platform' => $variant->platform,
+                'external_post_id' => $result['external_post_id'],
+            ]);
+
             Log::info('PostVariant published successfully', [
                 'variant_id' => $variant->id,
                 'platform' => $variant->platform,
@@ -121,6 +170,10 @@ class PublishVariantJob implements ShouldQueue
             ]);
 
         } catch (\Exception $e) {
+            // Record failed API call
+            $rateLimiter->recordRequest($variant->platform, $accountId);
+            $rateLimiter->recordFailure($variant->platform, $accountId);
+            
             // Failure - update attempt
             $errorCode = $e->getCode();
             $errorMessage = $e->getMessage();
@@ -163,6 +216,9 @@ class PublishVariantJob implements ShouldQueue
                 Log::error('Max retries exhausted, marking variant as failed', [
                     'variant_id' => $variant->id,
                 ]);
+                
+                // Check for multiple failures and send alert
+                $this->checkFailureThreshold();
             } else {
                 // Will be retried automatically by Laravel's queue
                 $variant->update(['status' => 'publishing']);
@@ -180,6 +236,31 @@ class PublishVariantJob implements ShouldQueue
             'linkedin' => app(LinkedInConnector::class),
             default => throw new \Exception('Unsupported platform: ' . $platform),
         };
+    }
+
+    private function checkFailureThreshold(): void
+    {
+        $threshold = config('omnipost.alert_threshold_failed_jobs', 5);
+        $oneHourAgo = now()->subHour();
+
+        $recentFailures = PublicationAttempt::where('result', 'fail')
+            ->where('created_at', '>=', $oneHourAgo)
+            ->count();
+
+        if ($recentFailures >= $threshold) {
+            $this->notifyAdmins(AdminAlert::failedPublishes($recentFailures, '1 hour'));
+        }
+    }
+
+    private function notifyAdmins($alert): void
+    {
+        $admins = \App\Models\User::whereHas('roles', function ($query) {
+            $query->where('slug', 'admin');
+        })->get();
+
+        if ($admins->isNotEmpty()) {
+            Notification::send($admins, $alert);
+        }
     }
 
     public function failed(\Throwable $exception): void

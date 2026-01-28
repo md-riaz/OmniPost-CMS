@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\OAuth\OAuthController;
 use App\Http\Controllers\Dashboard\PublishNowController;
 use App\Http\Controllers\Dashboard\PostWorkflowController;
+use App\Http\Controllers\Dashboard\CrisisModeController;
 use App\Models\Brand;
 
 Route::get('/', function () {
@@ -26,6 +27,11 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/dashboard/posts/{post}/reject', [PostWorkflowController::class, 'reject'])->name('dashboard.posts.reject');
     Route::post('/dashboard/posts/{post}/comments', [PostWorkflowController::class, 'addComment'])->name('dashboard.posts.add-comment');
     Route::get('/dashboard/posts/{post}/comments', [PostWorkflowController::class, 'showComments'])->name('dashboard.posts.comments');
+    
+    // Crisis Mode Routes
+    Route::get('/dashboard/brands/{brand}/crisis-mode', [CrisisModeController::class, 'index'])->name('dashboard.crisis-mode.index');
+    Route::post('/dashboard/brands/{brand}/crisis-mode/enable', [CrisisModeController::class, 'enable'])->name('dashboard.crisis-mode.enable');
+    Route::post('/dashboard/brands/{brand}/crisis-mode/disable', [CrisisModeController::class, 'disable'])->name('dashboard.crisis-mode.disable');
     
     // Calendar View
     Route::get('/dashboard/calendar', function () {

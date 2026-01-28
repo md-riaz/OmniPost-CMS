@@ -15,6 +15,7 @@ class PublicationAttempt extends Model
         'finished_at',
         'result',
         'external_post_id',
+        'idempotency_key',
         'error_code',
         'error_message',
         'raw_response',

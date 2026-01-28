@@ -9,6 +9,7 @@
         "php": "^8.2",
         "hasinhayder/tyro-dashboard": "^1.5",
         "laravel/framework": "^12.0",
+        "laravel/horizon": "^5.43",
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.10.1"
     },

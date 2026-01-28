@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Post;
 use App\Models\User;
 use App\Models\PostStatusChange;
+use App\Models\AuditLog;
 use App\Notifications\PostSubmittedForApproval;
 use App\Notifications\PostApproved;
 use App\Notifications\PostRejected;
@@ -63,6 +64,14 @@ class PostStatusService
 
             $this->recordTransition($post, $oldStatus, $user, null);
 
+            // Audit log
+            AuditLog::log('post_approved', $post, [
+                'old_status' => $oldStatus,
+                'new_status' => 'approved',
+                'approved_by_id' => $user->id,
+                'approved_by_name' => $user->name,
+            ], $user->id);
+
             // Notify creator
             if ($post->creator) {
                 $post->creator->notify(new PostApproved($post, $user));
@@ -88,6 +97,15 @@ class PostStatusService
             $post->save();
 
             $this->recordTransition($post, $oldStatus, $user, $reason);
+
+            // Audit log
+            AuditLog::log('post_rejected', $post, [
+                'old_status' => $oldStatus,
+                'new_status' => 'draft',
+                'rejected_by_id' => $user->id,
+                'rejected_by_name' => $user->name,
+                'reason' => $reason,
+            ], $user->id);
 
             // Notify creator
             if ($post->creator) {

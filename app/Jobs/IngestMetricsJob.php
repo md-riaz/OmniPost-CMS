@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Services\MetricsService;
+use App\Services\PlatformRateLimiter;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -21,7 +22,7 @@ class IngestMetricsJob implements ShouldQueue
         private int $lookbackDays = 30
     ) {}
 
-    public function handle(MetricsService $metricsService): void
+    public function handle(MetricsService $metricsService, PlatformRateLimiter $rateLimiter): void
     {
         Log::info('Starting metrics ingestion job', [
             'lookback_days' => $this->lookbackDays,
@@ -35,18 +36,39 @@ class IngestMetricsJob implements ShouldQueue
 
         foreach ($variants as $variant) {
             try {
-                // Add small delay to respect rate limits
-                usleep(100000); // 100ms delay between requests
+                // Check rate limiter before making API call
+                $accountId = $variant->connected_social_account_id;
+                if (!$rateLimiter->canMakeRequest($variant->platform, $accountId)) {
+                    $waitTime = $rateLimiter->waitTime($variant->platform, $accountId);
+                    Log::info('Rate limit reached, delaying metrics job', [
+                        'platform' => $variant->platform,
+                        'wait_time' => $waitTime,
+                    ]);
+                    $this->release($waitTime);
+                    return;
+                }
 
                 $result = $metricsService->ingestMetricsForVariant($variant);
                 
                 if ($result) {
                     $successCount++;
+                    $rateLimiter->recordRequest($variant->platform, $accountId);
+                    $rateLimiter->recordSuccess($variant->platform, $accountId);
                 } else {
                     $skippedCount++;
                 }
+                
+                // Small delay between requests
+                usleep(100000); // 100ms
+                
             } catch (\Exception $e) {
                 $failureCount++;
+                $accountId = $variant->connected_social_account_id ?? null;
+                
+                if ($accountId) {
+                    $rateLimiter->recordRequest($variant->platform, $accountId);
+                    $rateLimiter->recordFailure($variant->platform, $accountId);
+                }
                 
                 Log::error('Failed to ingest metrics for variant', [
                     'variant_id' => $variant->id,
@@ -54,9 +76,11 @@ class IngestMetricsJob implements ShouldQueue
                     'error' => $e->getMessage(),
                 ]);
 
-                // If rate limited, pause and retry later
-                if (str_contains($e->getMessage(), 'Rate limited') || str_contains($e->getMessage(), '429')) {
-                    Log::warning('Rate limited, stopping job to retry later');
+                // If rate limited or circuit breaker is open, pause and retry later
+                if (str_contains($e->getMessage(), 'Rate limited') || 
+                    str_contains($e->getMessage(), '429') ||
+                    ($accountId && $rateLimiter->isCircuitOpen($variant->platform, $accountId))) {
+                    Log::warning('Rate limited or circuit open, stopping job to retry later');
                     $this->release(3600); // Retry in 1 hour
                     return;
                 }
