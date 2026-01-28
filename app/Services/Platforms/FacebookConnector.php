@@ -226,4 +226,95 @@ class FacebookConnector implements PlatformConnector
             throw new \Exception('Failed to publish to Facebook: ' . ($errorData['error']['message'] ?? $e->getMessage()), $statusCode ?? 500);
         }
     }
+
+    public function fetchMetrics(string $postId, string $accessToken): array
+    {
+        try {
+            $metrics = [
+                'post_impressions',
+                'post_engaged_users',
+                'post_clicks',
+                'post_reactions_like_total',
+            ];
+
+            $response = $this->client->get(
+                'https://graph.facebook.com/' . $this->graphApiVersion . '/' . $postId . '/insights',
+                [
+                    'query' => [
+                        'metric' => implode(',', $metrics),
+                        'access_token' => $accessToken,
+                    ],
+                ]
+            );
+
+            $data = json_decode($response->getBody()->getContents(), true);
+            
+            // Also fetch engagement data (comments, shares)
+            $postResponse = $this->client->get(
+                'https://graph.facebook.com/' . $this->graphApiVersion . '/' . $postId,
+                [
+                    'query' => [
+                        'fields' => 'shares,comments.summary(true),reactions.summary(true)',
+                        'access_token' => $accessToken,
+                    ],
+                ]
+            );
+
+            $postData = json_decode($postResponse->getBody()->getContents(), true);
+
+            // Normalize metrics
+            $normalized = [
+                'likes' => $postData['reactions']['summary']['total_count'] ?? 0,
+                'comments' => $postData['comments']['summary']['total_count'] ?? 0,
+                'shares' => $postData['shares']['count'] ?? 0,
+                'impressions' => 0,
+                'clicks' => 0,
+            ];
+
+            // Parse insights data
+            foreach ($data['data'] ?? [] as $insight) {
+                $value = $insight['values'][0]['value'] ?? 0;
+                
+                switch ($insight['name']) {
+                    case 'post_impressions':
+                        $normalized['impressions'] = $value;
+                        break;
+                    case 'post_clicks':
+                        $normalized['clicks'] = $value;
+                        break;
+                }
+            }
+
+            Log::info('Fetched Facebook metrics', [
+                'post_id' => $postId,
+                'metrics' => $normalized,
+            ]);
+
+            return [
+                'success' => true,
+                'metrics' => $normalized,
+                'raw_data' => [
+                    'insights' => $data,
+                    'post' => $postData,
+                ],
+            ];
+        } catch (\GuzzleHttp\Exception\RequestException $e) {
+            $statusCode = $e->getResponse()?->getStatusCode();
+            $responseBody = $e->getResponse()?->getBody()->getContents();
+            $errorData = json_decode($responseBody, true);
+
+            Log::error('Failed to fetch Facebook metrics', [
+                'post_id' => $postId,
+                'status_code' => $statusCode,
+                'error' => $e->getMessage(),
+                'response' => $responseBody,
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $errorData['error']['message'] ?? $e->getMessage(),
+                'error_code' => $errorData['error']['code'] ?? $statusCode,
+            ];
+        }
+    }
 }

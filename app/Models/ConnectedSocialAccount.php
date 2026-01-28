@@ -32,6 +32,11 @@ class ConnectedSocialAccount extends Model
         return $this->belongsTo(OAuthToken::class, 'token_id');
     }
 
+    public function oauthToken(): BelongsTo
+    {
+        return $this->belongsTo(OAuthToken::class, 'token_id');
+    }
+
     public function postVariants(): HasMany
     {
         return $this->hasMany(PostVariant::class);

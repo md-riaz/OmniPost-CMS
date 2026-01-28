@@ -32,4 +32,12 @@ Route::middleware(['auth'])->group(function () {
         $brands = Brand::all();
         return view('dashboard.calendar', compact('brands'));
     })->name('dashboard.calendar');
+    
+    // Analytics Routes
+    Route::get('/dashboard/analytics', [\App\Http\Controllers\Dashboard\AnalyticsController::class, 'index'])
+        ->name('dashboard.analytics.index');
+    Route::get('/dashboard/analytics/posts/{post}', [\App\Http\Controllers\Dashboard\AnalyticsController::class, 'postPerformance'])
+        ->name('dashboard.analytics.post-performance');
+    Route::get('/dashboard/analytics/export', [\App\Http\Controllers\Dashboard\AnalyticsController::class, 'export'])
+        ->name('dashboard.analytics.export');
 });

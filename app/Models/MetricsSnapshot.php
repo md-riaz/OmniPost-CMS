@@ -30,6 +30,23 @@ class MetricsSnapshot extends Model
 
     public function getTotalEngagement(): int
     {
-        return $this->likes + $this->comments + $this->shares;
+        return ($this->likes ?? 0) + ($this->comments ?? 0) + ($this->shares ?? 0);
+    }
+
+    public function getEngagementRateAttribute(): ?float
+    {
+        if (!$this->impressions || $this->impressions == 0) {
+            return null;
+        }
+        $engagement = $this->getTotalEngagement();
+        return round(($engagement / $this->impressions) * 100, 2);
+    }
+
+    public function getClickThroughRateAttribute(): ?float
+    {
+        if (!$this->impressions || $this->impressions == 0) {
+            return null;
+        }
+        return round((($this->clicks ?? 0) / $this->impressions) * 100, 2);
     }
 }

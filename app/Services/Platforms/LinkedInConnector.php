@@ -254,4 +254,109 @@ class LinkedInConnector implements PlatformConnector
             throw new \Exception('Failed to publish to LinkedIn: ' . ($errorData['message'] ?? $e->getMessage()), $statusCode ?? 500);
         }
     }
+
+    public function fetchMetrics(string $shareUrn, string $accessToken): array
+    {
+        try {
+            // Extract organization URN from share URN
+            // Share URN format: urn:li:share:123456789
+            // We need the organization URN to query statistics
+            
+            // First, get the share details to find the author (organization)
+            $shareResponse = $this->client->get(
+                'https://api.linkedin.com/v2/ugcPosts/' . urlencode($shareUrn),
+                [
+                    'headers' => [
+                        'Authorization' => 'Bearer ' . $accessToken,
+                        'LinkedIn-Version' => '202401',
+                    ],
+                ]
+            );
+
+            $shareData = json_decode($shareResponse->getBody()->getContents(), true);
+            $organizationUrn = $shareData['author'] ?? null;
+
+            if (!$organizationUrn) {
+                throw new \Exception('Could not determine organization URN from share');
+            }
+
+            // Fetch statistics for the specific share
+            $statsResponse = $this->client->get(
+                'https://api.linkedin.com/v2/organizationalEntityShareStatistics',
+                [
+                    'query' => [
+                        'q' => 'organizationalEntity',
+                        'organizationalEntity' => $organizationUrn,
+                        'shares' => [$shareUrn],
+                    ],
+                    'headers' => [
+                        'Authorization' => 'Bearer ' . $accessToken,
+                        'LinkedIn-Version' => '202401',
+                    ],
+                ]
+            );
+
+            $statsData = json_decode($statsResponse->getBody()->getContents(), true);
+            
+            // Extract statistics for our share
+            $stats = null;
+            foreach ($statsData['elements'] ?? [] as $element) {
+                if (($element['share'] ?? '') === $shareUrn) {
+                    $stats = $element['totalShareStatistics'] ?? [];
+                    break;
+                }
+            }
+
+            if (!$stats) {
+                // If specific share stats not found, return zeros
+                $stats = [
+                    'likeCount' => 0,
+                    'commentCount' => 0,
+                    'shareCount' => 0,
+                    'impressionCount' => 0,
+                    'clickCount' => 0,
+                ];
+            }
+
+            // Normalize metrics
+            $normalized = [
+                'likes' => $stats['likeCount'] ?? 0,
+                'comments' => $stats['commentCount'] ?? 0,
+                'shares' => $stats['shareCount'] ?? 0,
+                'impressions' => $stats['impressionCount'] ?? 0,
+                'clicks' => $stats['clickCount'] ?? 0,
+            ];
+
+            Log::info('Fetched LinkedIn metrics', [
+                'share_urn' => $shareUrn,
+                'metrics' => $normalized,
+            ]);
+
+            return [
+                'success' => true,
+                'metrics' => $normalized,
+                'raw_data' => [
+                    'share' => $shareData,
+                    'statistics' => $statsData,
+                ],
+            ];
+        } catch (\GuzzleHttp\Exception\RequestException $e) {
+            $statusCode = $e->getResponse()?->getStatusCode();
+            $responseBody = $e->getResponse()?->getBody()->getContents();
+            $errorData = json_decode($responseBody, true);
+
+            Log::error('Failed to fetch LinkedIn metrics', [
+                'share_urn' => $shareUrn,
+                'status_code' => $statusCode,
+                'error' => $e->getMessage(),
+                'response' => $responseBody,
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $errorData['message'] ?? $e->getMessage(),
+                'error_code' => $statusCode,
+            ];
+        }
+    }
 }

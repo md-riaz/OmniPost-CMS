@@ -13,3 +13,6 @@ Schedule::command('oauth:watch-expiry --refresh')->daily();
 
 // Schedule post publishing to run every minute
 Schedule::command('posts:schedule')->everyMinute();
+
+// Schedule metrics ingestion to run nightly at 2 AM
+Schedule::job(new \App\Jobs\IngestMetricsJob(30))->dailyAt('02:00');
