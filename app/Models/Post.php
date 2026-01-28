@@ -45,4 +45,14 @@ class Post extends Model
     {
         return $this->hasMany(PostVariant::class);
     }
+
+    public function comments(): HasMany
+    {
+        return $this->hasMany(PostComment::class);
+    }
+
+    public function statusChanges(): HasMany
+    {
+        return $this->hasMany(PostStatusChange::class);
+    }
 }
