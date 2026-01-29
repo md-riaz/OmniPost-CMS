@@ -1,0 +1,18 @@
+<?php
+
+use Illuminate\Foundation\Inspiring;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Schedule;
+
+Artisan::command('inspire', function () {
+    $this->comment(Inspiring::quote());
+})->purpose('Display an inspiring quote');
+
+// Schedule OAuth token expiry watcher to run nightly
+Schedule::command('oauth:watch-expiry --refresh')->daily();
+
+// Schedule post publishing to run every minute
+Schedule::command('posts:schedule')->everyMinute();
+
+// Schedule metrics ingestion to run nightly at 2 AM
+Schedule::job(new \App\Jobs\IngestMetricsJob(30))->dailyAt('02:00');

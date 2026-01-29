@@ -1,0 +1,54 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
+class ConnectedSocialAccount extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'brand_id',
+        'platform',
+        'external_account_id',
+        'display_name',
+        'token_id',
+        'status',
+        'meta',
+    ];
+
+    protected $casts = [
+        'meta' => 'array',
+    ];
+
+    public function brand(): BelongsTo
+    {
+        return $this->belongsTo(Brand::class);
+    }
+
+    public function token(): BelongsTo
+    {
+        return $this->belongsTo(OAuthToken::class, 'token_id');
+    }
+
+    public function oauthToken(): BelongsTo
+    {
+        return $this->belongsTo(OAuthToken::class, 'token_id');
+    }
+
+    public function postVariants(): HasMany
+    {
+        return $this->hasMany(PostVariant::class);
+    }
+
+    public function isActive(): bool
+    {
+        return $this->status === 'connected' && 
+               $this->token && 
+               !$this->token->isExpired();
+    }
+}
