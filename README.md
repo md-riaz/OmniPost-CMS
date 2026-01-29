@@ -67,6 +67,68 @@ OmniPost CMS is a Laravel-based content management system built with Tyro Dashbo
 
 That's it! No complex setup, no configuration files to create. Just install and run! 🚀
 
+## 🚀 Deployment Options
+
+### Docker One-Click Deployment (Recommended)
+
+OmniPost CMS is containerized and compatible with Docker management tools like **Portio** or **Portainer**.
+
+1. **Deploy using Docker Compose**:
+   - Create a new Stack in your Docker manager.
+   - Paste the contents of [`docker-compose.yml`](docker-compose.yml).
+   - Update the environment variables if needed (e.g., `APP_KEY`, `APP_URL`).
+   - Deploy!
+
+   **Services included**:
+   - `app`: PHP 8.3 FPM application container
+   - `nginx`: Web server
+   - `db`: MariaDB 10.11 (optimized for performance)
+   - `redis`: Cache and Queue manager
+
+2. **Standard Docker Run**:
+   ```bash
+   docker-compose up -d --build
+   ```
+
+### Standard Server Deployment
+
+If you prefer a traditional server setup (e.g., Ubuntu/Nginx/PHP), follow these steps:
+
+1. **Server Requirements**:
+   - PHP 8.3+ with Extensions: `bcmath`, `ctype`, `curl`, `dom`, `fileinfo`, `json`, `mbstring`, `pdo_sqlite`, `tokenizer`, `xml`.
+   - Composer 2.x
+   - Node.js 20+ (for asset compilation)
+   - Supervisor (for queue workers)
+
+2. **Setup Steps**:
+   ```bash
+   # Clone Repo
+   git clone https://github.com/md-riaz/OmniPost-CMS.git /var/www/omnipost
+   cd /var/www/omnipost
+
+   # Install Dependencies
+   composer install --optimize-autoloader --no-dev
+   npm ci && npm run build
+
+   # Permissions
+   chown -R www-data:www-data /var/www/omnipost
+   chmod -R 775 storage bootstrap/cache
+   ```
+
+3. **Queue Configuration**:
+   Use Supervisor to run the queue worker:
+   ```ini
+   [program:omnipost-worker]
+   process_name=%(program_name)s_%(process_num)02d
+   command=php /var/www/omnipost/artisan queue:work --sleep=3 --tries=3
+   autostart=true
+   autorestart=true
+   user=www-data
+   numprocs=2
+   redirect_stderr=true
+   stdout_logfile=/var/www/omnipost/worker.log
+   ```
+
 ## 📸 Dashboard Preview
 
 Experience the OmniPost CMS interface with these screenshots from the live application. All pages are fully functional and ready to use after installation.
