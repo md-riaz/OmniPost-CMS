@@ -2,13 +2,11 @@ services:
     app:
         build:
             context: .
-            dockerfile: Dockerfile
+            target: app
         image: omnipost-cms-app
         container_name: omnipost-app
         restart: unless-stopped
         working_dir: /var/www
-        volumes:
-            - ./:/var/www
         networks:
             - omnipost-network
         environment:
@@ -22,13 +20,11 @@ services:
     nginx:
         build:
             context: .
-            dockerfile: docker/nginx.Dockerfile
+            target: nginx
         container_name: omnipost-nginx
         restart: unless-stopped
         ports:
             - "8008:80"
-        volumes:
-            - ./:/var/www
         networks:
             - omnipost-network
         depends_on:
