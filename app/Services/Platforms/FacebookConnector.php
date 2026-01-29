@@ -20,9 +20,14 @@ class FacebookConnector implements PlatformConnector
         $this->client = new Client([
             'timeout' => 30,
         ]);
-        $this->appId = config('services.facebook.client_id');
-        $this->appSecret = config('services.facebook.client_secret');
+        
+        $this->appId = config('services.facebook.client_id') ?? '';
+        $this->appSecret = config('services.facebook.client_secret') ?? '';
         $this->graphApiVersion = config('services.facebook.graph_api_version', 'v20.0');
+
+        if (empty($this->appId) || empty($this->appSecret)) {
+            throw new \RuntimeException('Facebook services configuration is incomplete. Please ensure FACEBOOK_CLIENT_ID and FACEBOOK_CLIENT_SECRET are set in your .env file.');
+        }
     }
 
     public function getPlatform(): string

@@ -23,8 +23,13 @@ class LinkedInConnector implements PlatformConnector
                 'X-Restli-Protocol-Version' => '2.0.0',
             ],
         ]);
-        $this->clientId = config('services.linkedin.client_id');
-        $this->clientSecret = config('services.linkedin.client_secret');
+        
+        $this->clientId = config('services.linkedin.client_id') ?? '';
+        $this->clientSecret = config('services.linkedin.client_secret') ?? '';
+
+        if (empty($this->clientId) || empty($this->clientSecret)) {
+            throw new \RuntimeException('LinkedIn services configuration is incomplete. Please ensure LINKEDIN_CLIENT_ID and LINKEDIN_CLIENT_SECRET are set in your .env file.');
+        }
     }
 
     public function getPlatform(): string
