@@ -183,6 +183,7 @@ return [
             'search' => ['name', 'slug'],
         ],
 
+        /*
         'connected-social-accounts' => [
             'model' => 'App\Models\ConnectedSocialAccount',
             'title' => 'Connected Accounts',
@@ -218,6 +219,7 @@ return [
             'list_columns' => ['brand_id', 'platform', 'display_name', 'status', 'created_at'],
             'readonly' => [],  // Empty = admin has full access; add roles here for read-only access
         ],
+        */
 
         'posts' => [
             'model' => 'App\Models\Post',

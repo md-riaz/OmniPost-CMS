@@ -5,6 +5,7 @@ use App\Http\Controllers\OAuth\OAuthController;
 use App\Http\Controllers\Dashboard\PublishNowController;
 use App\Http\Controllers\Dashboard\PostWorkflowController;
 use App\Http\Controllers\Dashboard\CrisisModeController;
+use App\Http\Controllers\Dashboard\ConnectedAccountsController;
 use App\Models\Brand;
 
 Route::get('/', function () {
@@ -38,6 +39,10 @@ Route::middleware(['auth'])->group(function () {
         $brands = Brand::all();
         return view('dashboard.calendar', compact('brands'));
     })->name('dashboard.calendar');
+    
+    // Connect Accounts
+    Route::get('/dashboard/connect-accounts', [ConnectedAccountsController::class, 'index'])
+        ->name('dashboard.connect-accounts');
     
     // Analytics Routes
     Route::get('/dashboard/analytics', [\App\Http\Controllers\Dashboard\AnalyticsController::class, 'index'])

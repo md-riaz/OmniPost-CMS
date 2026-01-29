@@ -217,6 +217,87 @@ All dashboard pages feature:
 - ⚡ **Fast Performance** - Optimized for speed
 - 🔒 **Secure** - Role-based access control on all pages
 
+---
+
+## 🚀 Quick Start: Publishing Your First Post
+
+Follow this step-by-step flow to set up a new brand and start publishing to Facebook/LinkedIn:
+
+### Step 1: Create a Brand
+
+```
+Dashboard → Resources → Brands → Add New
+```
+
+1. Enter a **Brand Name** (e.g., "My Company")
+2. Set a unique **Slug** (e.g., "my-company")
+3. Select your **Timezone** for scheduling
+4. Set **Status** to Active
+5. Click **Save**
+
+### Step 2: Connect Social Accounts
+
+```
+Dashboard → Integrations → Connect Accounts
+```
+
+1. Select your brand from the dropdown
+2. Click **Connect Facebook** or **Connect LinkedIn**
+3. Authorize on the social platform
+4. Select the Pages/Organizations to connect
+5. You'll be redirected back with connected accounts listed
+
+### Step 3: Create a Post
+
+```
+Dashboard → Resources → Posts → Add New
+```
+
+1. Select your **Brand**
+2. Enter an **Internal Title** (for organization)
+3. Write your **Base Content** (the main post text)
+4. Optionally add a **Target URL** and **UTM Template**
+5. Click **Save** (creates post as Draft)
+
+### Step 4: Create Post Variants
+
+```
+Dashboard → Resources → Post Variants → Add New
+```
+
+1. Select the **Post** you just created
+2. Choose the **Social Account** (Facebook Page or LinkedIn Org)
+3. Set **Platform** (facebook or linkedin)
+4. Optionally add **Custom Text** override for this platform
+5. Set a **Schedule Time** for publishing
+6. Click **Save**
+
+### Step 5: Approval Workflow (if enabled)
+
+1. Go to your Post and click **Submit for Approval**
+2. An approver reviews and clicks **Approve**
+3. Post status changes to "Approved"
+
+### Step 6: Publish
+
+- **Scheduled**: Posts publish automatically at the scheduled time via queue worker
+- **Immediate**: Click **Publish Now** on the Post Variant to publish immediately
+
+### Visual Flow
+
+```
+┌─────────────┐     ┌─────────────────┐     ┌──────────────┐
+│  1. Create  │────▶│ 2. Connect      │────▶│ 3. Create    │
+│    Brand    │     │    Accounts     │     │    Post      │
+└─────────────┘     └─────────────────┘     └──────┬───────┘
+                                                   │
+┌─────────────┐     ┌─────────────────┐     ┌──────▼───────┐
+│ 6. Publish  │◀────│ 5. Approve      │◀────│ 4. Create    │
+│   (Queue)   │     │    Post         │     │   Variants   │
+└─────────────┘     └─────────────────┘     └──────────────┘
+```
+
+> **Tip**: Run `php artisan queue:work` to process scheduled publications automatically.
 
 ## OAuth Configuration
 
@@ -283,23 +364,24 @@ Once you've configured the OAuth credentials:
 
 2. **Create a Brand** (if not exists)
    - Go to "Brands" resource
-   - Create a new brand
+   - Create a new brand with a name and timezone
 
-3. **Connect Facebook Pages**
-   - Visit: `http://localhost:8000/oauth/facebook/redirect?brand_id=1`
-   - You'll be redirected to Facebook to authorize
-   - Select the pages you want to connect
-   - You'll be redirected back with connected accounts
+3. **Connect Social Accounts (via UI)**
+   - Click **"Connect Accounts"** in the sidebar under "Integrations"
+   - Or visit: `http://localhost:8000/dashboard/connect-accounts`
+   - Select your brand from the dropdown
+   - Click **"Connect Facebook"** or **"Connect LinkedIn"**
+   - You'll be redirected to authorize your account
+   - After authorization, connected accounts appear in the table below
 
-4. **Connect LinkedIn Organizations**
-   - Visit: `http://localhost:8000/oauth/linkedin/redirect?brand_id=1`
-   - You'll be redirected to LinkedIn to authorize
-   - Select the organizations you want to connect
-   - You'll be redirected back with connected accounts
+4. **Alternative: Direct URL Method**
+   - Facebook: `http://localhost:8000/oauth/facebook/redirect?brand_id=1`
+   - LinkedIn: `http://localhost:8000/oauth/linkedin/redirect?brand_id=1`
+   - Replace `1` with your actual brand ID
 
 5. **View Connected Accounts**
-   - Go to "Connected Accounts" resource in the dashboard
-   - You'll see all your connected Facebook Pages and LinkedIn Organizations
+   - The Connect Accounts page shows all your connected accounts
+   - Or visit the "Connected Accounts" resource for a table view
 
 ### Managing OAuth Tokens
 
@@ -320,13 +402,14 @@ php artisan schedule:work
 ```
 
 **Disconnecting an Account**:
-- Go to the "Connected Accounts" resource
-- Find the account you want to disconnect
+- Go to **Connect Accounts** page in the sidebar
+- Click the "Disconnect" button next to the account
 - The status will be updated to "revoked"
 
 **Reconnecting an Expired Account**:
-- Use the reconnect URL: `/oauth/accounts/{account_id}/reconnect`
-- This will initiate a new OAuth flow for that specific account
+- Go to **Connect Accounts** page
+- Click the "Reconnect" button next to the expired account
+- This will initiate a new OAuth flow
 
 
 ## Default Login Credentials
