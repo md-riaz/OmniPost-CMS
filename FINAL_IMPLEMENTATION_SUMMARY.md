@@ -195,7 +195,7 @@ composer install
 php artisan serve
 
 # Access dashboard
-open http://localhost:8000/dashboard
+open http://localhost:8008/dashboard
 
 # Default credentials
 Email: admin@omnipost.local
@@ -335,7 +335,7 @@ php artisan metrics:ingest
 
 # Monitor queues
 php artisan horizon
-# Dashboard: http://localhost:8000/horizon
+# Dashboard: http://localhost:8008/horizon
 ```
 
 ---

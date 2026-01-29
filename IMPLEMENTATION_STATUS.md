@@ -647,7 +647,7 @@ composer install
 php artisan serve
 
 # Login to dashboard
-# URL: http://localhost:8000/dashboard
+# URL: http://localhost:8008/dashboard
 # Email: admin@omnipost.local
 # Password: password123
 ```

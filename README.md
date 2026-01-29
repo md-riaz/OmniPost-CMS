@@ -61,7 +61,7 @@ OmniPost CMS is a Laravel-based content management system built with Tyro Dashbo
    ```
 
 5. **Access the dashboard**
-   - URL: http://localhost:8000/dashboard
+   - URL: http://localhost:8008/dashboard
    - Email: `admin@omnipost.local`
    - Password: `password123`
 
@@ -373,7 +373,7 @@ Dashboard → Resources → Post Variants → Add New
 2. **Configure OAuth Settings**
    - In your app dashboard, go to "Settings" → "Basic"
    - Copy your App ID and App Secret
-   - Add `http://localhost:8000/oauth/facebook/callback` to "Valid OAuth Redirect URIs" under "Facebook Login" settings
+   - Add `http://localhost:8008/oauth/facebook/callback` to "Valid OAuth Redirect URIs" under "Facebook Login" settings
 
 3. **Request Required Permissions**
    - Go to "App Review" → "Permissions and Features"
@@ -399,7 +399,7 @@ Dashboard → Resources → Post Variants → Add New
 2. **Configure OAuth Settings**
    - In your app settings, go to the "Auth" tab
    - Copy your Client ID and Client Secret
-   - Add `http://localhost:8000/oauth/linkedin/callback` to "Authorized redirect URLs"
+   - Add `http://localhost:8008/oauth/linkedin/callback` to "Authorized redirect URLs"
 
 3. **Request Required Permissions**
    - Go to the "Products" tab
@@ -422,7 +422,7 @@ Dashboard → Resources → Post Variants → Add New
 Once you've configured the OAuth credentials:
 
 1. **Log in to the dashboard**
-   - Navigate to http://localhost:8000/dashboard
+   - Navigate to http://localhost:8008/dashboard
 
 2. **Create a Brand** (if not exists)
    - Go to "Brands" resource
@@ -430,15 +430,15 @@ Once you've configured the OAuth credentials:
 
 3. **Connect Social Accounts (via UI)**
    - Click **"Connect Accounts"** in the sidebar under "Integrations"
-   - Or visit: `http://localhost:8000/dashboard/connect-accounts`
+   - Or visit: `http://localhost:8008/dashboard/connect-accounts`
    - Select your brand from the dropdown
    - Click **"Connect Facebook"** or **"Connect LinkedIn"**
    - You'll be redirected to authorize your account
    - After authorization, connected accounts appear in the table below
 
 4. **Alternative: Direct URL Method**
-   - Facebook: `http://localhost:8000/oauth/facebook/redirect?brand_id=1`
-   - LinkedIn: `http://localhost:8000/oauth/linkedin/redirect?brand_id=1`
+   - Facebook: `http://localhost:8008/oauth/facebook/redirect?brand_id=1`
+   - LinkedIn: `http://localhost:8008/oauth/linkedin/redirect?brand_id=1`
    - Replace `1` with your actual brand ID
 
 5. **View Connected Accounts**
