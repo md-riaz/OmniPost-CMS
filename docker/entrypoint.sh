@@ -12,12 +12,15 @@ cd /var/www
 # Run migrations (careful in production auto-deploy, maybe make optional via env var)
 # php artisan migrate --force
 
-# Clear caches
+# Clear and optimize application (avoiding config/route caching due to closures)
 php artisan optimize:clear
-php artisan config:cache
+php artisan view:clear
+php artisan config:clear
+php artisan route:clear
+php artisan cache:clear
+
+# Essential caches that support closures (if any)
 php artisan event:cache
-php artisan route:cache
-php artisan view:cache
 
 # Start FPM
 exec php-fpm

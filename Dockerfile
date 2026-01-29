@@ -1,5 +1,5 @@
 # Stage 1: Frontend Build
-FROM node:20-alpine as frontend
+FROM node:20-alpine AS frontend
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci
@@ -7,7 +7,7 @@ COPY . .
 RUN npm run build
 
 # Stage 2: PHP Application
-FROM php:8.3-fpm as app
+FROM php:8.3-fpm AS app
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -70,7 +70,7 @@ EXPOSE 9000
 ENTRYPOINT ["start-container"]
 
 # Stage 3: Nginx
-FROM nginx:alpine as nginx
+FROM nginx:alpine AS nginx
 COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
 # Copy ONLY the public folder (including built assets) from the frontend stage
 COPY --from=frontend /app/public /var/www/public
