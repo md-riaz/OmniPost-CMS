@@ -1,9 +1,17 @@
-# Stage 1: Frontend Build
+# Stage 1: Vendor (Composer)
+FROM composer:2 AS vendor
+WORKDIR /app
+COPY composer.json composer.lock ./
+RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist --ignore-platform-reqs
+
+# Stage 2: Frontend Build
 FROM node:20-alpine AS frontend
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 COPY . .
+# Copy vendor folder from vendor stage so Tailwind can scan classes
+COPY --from=vendor /app/vendor ./vendor
 RUN npm run build
 
 # Stage 2: PHP Application
