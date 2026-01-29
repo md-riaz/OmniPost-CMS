@@ -18,6 +18,10 @@ class LinkedInConnector implements PlatformConnector
     {
         $this->client = new Client([
             'timeout' => 30,
+            'headers' => [
+                'LinkedIn-Version' => '202401',
+                'X-Restli-Protocol-Version' => '2.0.0',
+            ],
         ]);
         $this->clientId = config('services.linkedin.client_id');
         $this->clientSecret = config('services.linkedin.client_secret');
@@ -206,7 +210,6 @@ class LinkedInConnector implements PlatformConnector
                 'headers' => [
                     'Authorization' => 'Bearer ' . $accessToken,
                     'Content-Type' => 'application/json',
-                    'LinkedIn-Version' => '202401',
                 ],
                 'json' => $payload,
             ]);
@@ -255,40 +258,44 @@ class LinkedInConnector implements PlatformConnector
     public function fetchMetrics(string $shareUrn, string $accessToken): array
     {
         try {
-            // Extract organization URN from share URN
-            // Share URN format: urn:li:share:123456789
-            // We need the organization URN to query statistics
+            // Extract organization URN from share URN if possible, or just use the share URN directly
+            // For REST API, we need the URN in the format urn:li:share:123 or urn:li:ugcPost:123
             
-            // First, get the share details to find the author (organization)
-            $shareResponse = $this->client->get(
-                'https://api.linkedin.com/v2/ugcPosts/' . urlencode($shareUrn),
+            // 1. Fetch Post details to verify existence and get basic info
+            // URL encode the URN
+            $encodedUrn = urlencode($shareUrn);
+            
+            $postResponse = $this->client->get(
+                'https://api.linkedin.com/rest/posts/' . $encodedUrn,
                 [
                     'headers' => [
                         'Authorization' => 'Bearer ' . $accessToken,
-                        'LinkedIn-Version' => '202401',
                     ],
                 ]
             );
 
-            $shareData = json_decode($shareResponse->getBody()->getContents(), true);
-            $organizationUrn = $shareData['author'] ?? null;
+            $postData = json_decode($postResponse->getBody()->getContents(), true);
+            $organizationUrn = $postData['author'] ?? null;
 
             if (!$organizationUrn) {
-                throw new \Exception('Could not determine organization URN from share');
+                // If we can't get the author, we can't reliably query statistics in the context of an org 
+                // but let's try querying stats directly for the share first
+                // Note: The author field is usually present in the post object
+                Log::warning('Could not determine organization URN from post details', ['share_urn' => $shareUrn]);
             }
 
-            // Fetch statistics for the specific share
+            // 2. Fetch Statistics using the organizationalEntityShareStatistics endpoint
+            // This endpoint supports looking up stats by share URN(s)
             $statsResponse = $this->client->get(
-                'https://api.linkedin.com/v2/organizationalEntityShareStatistics',
+                'https://api.linkedin.com/rest/organizationalEntityShareStatistics',
                 [
                     'query' => [
                         'q' => 'organizationalEntity',
-                        'organizationalEntity' => $organizationUrn,
-                        'shares' => [$shareUrn],
+                        'organizationalEntity' => $organizationUrn, // Required by the endpoint
+                        'shares' => 'List(' . urlencode($shareUrn) . ')',
                     ],
                     'headers' => [
                         'Authorization' => 'Bearer ' . $accessToken,
-                        'LinkedIn-Version' => '202401',
                     ],
                 ]
             );
@@ -297,6 +304,7 @@ class LinkedInConnector implements PlatformConnector
             
             // Extract statistics for our share
             $stats = null;
+            // The REST API returns 'elements' array
             foreach ($statsData['elements'] ?? [] as $element) {
                 if (($element['share'] ?? '') === $shareUrn) {
                     $stats = $element['totalShareStatistics'] ?? [];
@@ -305,7 +313,6 @@ class LinkedInConnector implements PlatformConnector
             }
 
             if (!$stats) {
-                // If specific share stats not found, return zeros
                 $stats = [
                     'likeCount' => 0,
                     'commentCount' => 0,
@@ -333,7 +340,7 @@ class LinkedInConnector implements PlatformConnector
                 'success' => true,
                 'metrics' => $normalized,
                 'raw_data' => [
-                    'share' => $shareData,
+                    'post' => $postData,
                     'statistics' => $statsData,
                 ],
             ];

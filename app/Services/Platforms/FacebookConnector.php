@@ -22,7 +22,7 @@ class FacebookConnector implements PlatformConnector
         ]);
         $this->appId = config('services.facebook.client_id');
         $this->appSecret = config('services.facebook.client_secret');
-        $this->graphApiVersion = config('services.facebook.graph_api_version', 'v19.0');
+        $this->graphApiVersion = config('services.facebook.graph_api_version', 'v20.0');
     }
 
     public function getPlatform(): string
