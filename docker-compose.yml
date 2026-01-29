@@ -19,6 +19,7 @@ services:
             - db
             - redis
 
+    nginx:
         build:
             context: .
             dockerfile: docker/nginx.Dockerfile
