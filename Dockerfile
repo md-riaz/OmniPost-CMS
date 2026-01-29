@@ -63,6 +63,7 @@ RUN chown -R laruser:www-data /var/www
 
 # Copy and set permissions for entrypoint
 COPY ./docker/entrypoint.sh /usr/local/bin/start-container
+COPY ./docker/php.ini /usr/local/etc/php/conf.d/local.ini
 RUN chmod +x /usr/local/bin/start-container
 
 # Switch to user
