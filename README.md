@@ -67,6 +67,157 @@ OmniPost CMS is a Laravel-based content management system built with Tyro Dashbo
 
 That's it! No complex setup, no configuration files to create. Just install and run! 🚀
 
+## 📸 Dashboard Preview
+
+Experience the OmniPost CMS interface with these screenshots from the live application. All pages are fully functional and ready to use after installation.
+
+### Login & Authentication
+
+#### Login Page
+![Login Page](https://github.com/user-attachments/assets/53debc51-61e5-4c1a-9d7d-46feadfd367a)
+
+Clean, modern login interface with email and password authentication. Default credentials: `admin@omnipost.local` / `password123`
+
+---
+
+### Dashboard Home
+
+#### Main Dashboard
+![Dashboard Home](https://github.com/user-attachments/assets/23eff9b6-20dd-4754-ae20-ea43afa84372)
+
+The dashboard home provides an overview of your system with:
+- User statistics and counts
+- Role distribution
+- Quick access to recent users
+- System-wide metrics at a glance
+
+---
+
+### User Management
+
+#### My Profile
+![My Profile](https://github.com/user-attachments/assets/23eff9b6-20dd-4754-ae20-ea43afa84372)
+
+Manage your personal profile including:
+- Name and email settings
+- Password management
+- Account information
+- Role assignments
+
+#### Users Management
+![Users](https://github.com/user-attachments/assets/ce83a99d-0159-4259-9ffc-ea8ff11712fb)
+
+Comprehensive user management with:
+- Search and filter capabilities
+- Role-based filtering
+- User status management (Active/Suspended)
+- Quick actions (Edit, Suspend)
+
+---
+
+### Role-Based Access Control (RBAC)
+
+#### Roles Management
+![Roles](https://github.com/user-attachments/assets/3289ea89-101e-48a5-b6ba-d55a58b9c878)
+
+Manage user roles and permissions:
+- 8 predefined roles (Administrator, Editor, Manager, Approver, etc.)
+- User count per role
+- Privilege assignment tracking
+- Protected roles (cannot be deleted)
+
+#### Privileges Management
+![Privileges](https://github.com/user-attachments/assets/6324f64c-c819-46c0-b99f-0f77f0fd7114)
+
+Granular permission management:
+- 17 distinct privileges
+- Brand, channel, post, calendar, and analytics permissions
+- Role assignment tracking
+- Search and pagination
+
+---
+
+### Content Management
+
+#### Brands Resource
+![Brands](https://github.com/user-attachments/assets/95474f0e-2a93-430c-94f7-cc521bf5de79)
+
+Organize your content by brands/clients:
+- Brand name and slug management
+- Timezone configuration
+- Active/inactive status
+- CRUD operations
+
+#### Posts Resource
+![Posts](https://github.com/user-attachments/assets/a12bc24a-4ac1-4c3a-bf3e-5a632e6d6200)
+
+Core content management:
+- Internal title and base content
+- Brand association
+- Status tracking (Draft, Pending, Approved, etc.)
+- Target URL and UTM template support
+- Full CRUD capabilities
+
+#### Post Variants Resource
+![Post Variants](https://github.com/user-attachments/assets/05eea4d4-6bf5-4338-8863-46fc31c80fe5)
+
+Platform-specific content variations:
+- Create variants for each social platform
+- Schedule publishing times
+- Platform-specific text overrides
+- Media customization per platform
+
+---
+
+### System Resources
+
+#### Connected Accounts
+![Connected Accounts](https://github.com/user-attachments/assets/a7af5bc9-0b48-41d2-8581-f40c06501fdd)
+
+> *Note: This page requires OAuth configuration to function. See the OAuth Configuration section above.*
+
+Manage connected social media accounts:
+- Facebook Pages connections
+- LinkedIn Organizations
+- Token status monitoring
+- Connect/disconnect functionality
+
+#### Publication Attempts
+![Publication Attempts](https://github.com/user-attachments/assets/fdaff4a7-2dd6-4c59-828d-bc5f19fc49a8)
+
+> *Note: This page requires configured Tyro Dashboard resources. See the Tyro Dashboard configuration section.*
+
+Track publishing history:
+- Attempt logs and results
+- Error debugging
+- External post IDs
+- Retry status
+
+#### Metrics & Analytics
+![Metrics](https://github.com/user-attachments/assets/802aad75-0593-486f-af48-f6487f1ccb15)
+
+> *Note: This page requires configured Tyro Dashboard resources. See the Tyro Dashboard configuration section.*
+
+Performance analytics:
+- Likes, comments, shares
+- Impressions and clicks
+- Historical snapshots
+- Platform-specific metrics
+
+---
+
+### UI Features
+
+All dashboard pages feature:
+- ✨ **Modern Design** - Clean, professional interface
+- 🌙 **Dark Mode** - Toggle between light and dark themes
+- 📱 **Responsive** - Works on desktop, tablet, and mobile
+- 🔍 **Search & Filter** - Quick data access
+- 🎯 **Breadcrumbs** - Easy navigation
+- ⚡ **Fast Performance** - Optimized for speed
+- 🔒 **Secure** - Role-based access control on all pages
+
+
 ## OAuth Configuration
 
 ### Setting Up Facebook OAuth
