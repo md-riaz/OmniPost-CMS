@@ -216,7 +216,7 @@ return [
                 ],
             ],
             'list_columns' => ['brand_id', 'platform', 'display_name', 'status', 'created_at'],
-            'readonly' => true,
+            'readonly' => [],  // Empty = admin has full access; add roles here for read-only access
         ],
 
         'posts' => [
@@ -356,7 +356,7 @@ return [
             'singular' => 'Publication Attempt',
             'icon' => '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>',
             'roles' => ['admin'],
-            'readonly' => true,
+            'readonly' => [],  // Empty = admin has full access
             'fields' => [
                 'post_variant_id' => [
                     'type' => 'select',
@@ -386,7 +386,7 @@ return [
             'singular' => 'Metric',
             'icon' => '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>',
             'roles' => ['admin', 'manager'],
-            'readonly' => true,
+            'readonly' => ['manager'],  // Manager is read-only, admin has full access
             'fields' => [
                 'post_variant_id' => [
                     'type' => 'select',
