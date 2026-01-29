@@ -30,11 +30,11 @@ class SchedulePostsCommand extends Command
         $count = 0;
         foreach ($dueVariants as $variant) {
             try {
-                // Mark as publishing
-                $variant->update(['status' => 'publishing']);
-
-                // Dispatch the job
+                // Dispatch the job first
                 PublishVariantJob::dispatch($variant->id);
+                
+                // Only mark as publishing after successful dispatch
+                $variant->update(['status' => 'publishing']);
 
                 $count++;
                 $this->info("Dispatched variant #{$variant->id} for publishing");
@@ -47,6 +47,9 @@ class SchedulePostsCommand extends Command
                 ]);
             } catch (\Exception $e) {
                 $this->error("Failed to dispatch variant #{$variant->id}: {$e->getMessage()}");
+                
+                // Revert status back to scheduled so it can be retried
+                $variant->update(['status' => 'scheduled']);
                 
                 Log::error('Failed to dispatch scheduled post', [
                     'variant_id' => $variant->id,

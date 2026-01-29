@@ -177,38 +177,35 @@ class LinkedInConnector implements PlatformConnector
     public function publish(string $targetId, string $text, string $accessToken, array $options = []): array
     {
         try {
+            // Prepare payload for LinkedIn Posts API (new format)
             $payload = [
                 'author' => $targetId,
+                'commentary' => $text,
+                'visibility' => 'PUBLIC',
+                'distribution' => [
+                    'feedDistribution' => 'MAIN_FEED',
+                    'targetEntities' => [],
+                    'thirdPartyDistributionChannels' => []
+                ],
                 'lifecycleState' => 'PUBLISHED',
-                'specificContent' => [
-                    'com.linkedin.ugc.ShareContent' => [
-                        'shareCommentary' => [
-                            'text' => $text,
-                        ],
-                        'shareMediaCategory' => 'NONE',
-                    ],
-                ],
-                'visibility' => [
-                    'com.linkedin.ugc.MemberNetworkVisibility' => 'PUBLIC',
-                ],
+                'isReshareDisabledByAuthor' => false
             ];
 
             // Add optional link
             if (!empty($options['link'])) {
-                $payload['specificContent']['com.linkedin.ugc.ShareContent']['shareMediaCategory'] = 'ARTICLE';
-                $payload['specificContent']['com.linkedin.ugc.ShareContent']['media'] = [
-                    [
-                        'status' => 'READY',
-                        'originalUrl' => $options['link'],
-                    ],
+                $payload['content'] = [
+                    'article' => [
+                        'source' => $options['link'],
+                        'title' => '', // Can be extracted if provided
+                        'description' => ''
+                    ]
                 ];
             }
 
-            $response = $this->client->post('https://api.linkedin.com/v2/ugcPosts', [
+            $response = $this->client->post('https://api.linkedin.com/rest/posts', [
                 'headers' => [
                     'Authorization' => 'Bearer ' . $accessToken,
                     'Content-Type' => 'application/json',
-                    'X-Restli-Protocol-Version' => '2.0.0',
                     'LinkedIn-Version' => '202401',
                 ],
                 'json' => $payload,

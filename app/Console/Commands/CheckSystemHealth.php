@@ -31,7 +31,7 @@ class CheckSystemHealth extends Command
         $threshold = config('omnipost.alert_threshold_failed_jobs', 5);
         $oneHourAgo = now()->subHour();
 
-        $failedCount = PublicationAttempt::where('result', 'failed')
+        $failedCount = PublicationAttempt::where('result', 'fail')
             ->where('created_at', '>=', $oneHourAgo)
             ->count();
 

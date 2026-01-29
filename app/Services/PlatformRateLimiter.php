@@ -128,6 +128,14 @@ class PlatformRateLimiter
 
     private function getLimit(string $platform): int
     {
+        $limits = config('omnipost.rate_limits', []);
+        $platformLimits = $limits[strtolower($platform)] ?? null;
+        
+        if ($platformLimits && isset($platformLimits['limit'])) {
+            return $platformLimits['limit'];
+        }
+        
+        // Fallback to hardcoded defaults
         return match (strtolower($platform)) {
             'facebook' => self::FACEBOOK_HOURLY_LIMIT,
             'linkedin' => self::LINKEDIN_DAILY_LIMIT,
@@ -137,6 +145,19 @@ class PlatformRateLimiter
 
     private function getTtl(string $platform): Carbon
     {
+        $limits = config('omnipost.rate_limits', []);
+        $platformLimits = $limits[strtolower($platform)] ?? null;
+        
+        if ($platformLimits && isset($platformLimits['window'])) {
+            return match ($platformLimits['window']) {
+                'minute' => now()->addMinute(),
+                'hour' => now()->addHour(),
+                'day' => now()->addDay(),
+                default => now()->addHour(),
+            };
+        }
+        
+        // Fallback to hardcoded defaults
         return match (strtolower($platform)) {
             'facebook' => now()->addHour(),
             'linkedin' => now()->addDay(),

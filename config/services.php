@@ -38,7 +38,7 @@ return [
     'facebook' => [
         'client_id' => env('FACEBOOK_CLIENT_ID'),
         'client_secret' => env('FACEBOOK_CLIENT_SECRET'),
-        'graph_api_version' => env('FACEBOOK_GRAPH_API_VERSION', 'v18.0'),
+        'graph_api_version' => env('FACEBOOK_GRAPH_API_VERSION', 'v19.0'),
     ],
 
     'linkedin' => [

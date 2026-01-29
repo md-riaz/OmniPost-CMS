@@ -161,7 +161,16 @@ return [
             'roles' => ['admin', 'manager'],
             'fields' => [
                 'name' => ['type' => 'text', 'label' => 'Brand Name', 'rules' => 'required|max:255'],
-                'slug' => ['type' => 'text', 'label' => 'Slug', 'rules' => 'unique:brands,slug'],
+                'slug' => [
+                    'type' => 'text',
+                    'label' => 'Slug',
+                    'rules' => function($model) {
+                        return [
+                            'required',
+                            \Illuminate\Validation\Rule::unique('brands', 'slug')->ignore($model?->id)
+                        ];
+                    }
+                ],
                 'timezone' => [
                     'type' => 'select',
                     'label' => 'Timezone',
