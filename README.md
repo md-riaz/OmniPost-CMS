@@ -381,12 +381,14 @@ Dashboard → Resources → Post Variants → Add New
      - `pages_show_list` - View your Pages
      - `pages_read_engagement` - Read your Pages data
      - `pages_manage_posts` - Publish and manage your Pages posts
+     - `pages_manage_metadata` - Manage Page metadata
+     - `pages_read_user_content` - Read Page content
 
 4. **Update .env File**
    ```bash
    FACEBOOK_CLIENT_ID=your_actual_app_id
    FACEBOOK_CLIENT_SECRET=your_actual_app_secret
-   FACEBOOK_GRAPH_API_VERSION=v18.0
+   FACEBOOK_GRAPH_API_VERSION=v21.0
    ```
 
 ### Setting Up LinkedIn OAuth
@@ -405,8 +407,11 @@ Dashboard → Resources → Post Variants → Add New
    - Go to the "Products" tab
    - Add these products:
      - Marketing Developer Platform (for posting to organizations)
-     - Sign In with LinkedIn (for basic authentication)
+     - Sign In with LinkedIn using OpenID Connect
    - You'll need these scopes:
+     - `openid` - OpenID Connect authentication
+     - `profile` - Access user profile
+     - `w_member_social` - Post on behalf of members
      - `r_organization_social` - Read organization social media content
      - `w_organization_social` - Write organization social media content
      - `rw_organization_admin` - Administer organization pages
