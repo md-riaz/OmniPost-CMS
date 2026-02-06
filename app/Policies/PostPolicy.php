@@ -13,7 +13,7 @@ class PostPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->hasRole(['admin', 'editor', 'approver']);
+        return $user->hasPrivilege('post.view');
     }
 
     /**
@@ -21,7 +21,7 @@ class PostPolicy
      */
     public function view(User $user, Post $post): bool
     {
-        return $user->hasRole(['admin', 'editor', 'approver']);
+        return $user->hasPrivilege('post.view');
     }
 
     /**
@@ -29,7 +29,7 @@ class PostPolicy
      */
     public function create(User $user): bool
     {
-        return $user->hasRole(['admin', 'editor']);
+        return $user->hasPrivilege('post.create');
     }
 
     /**
@@ -37,13 +37,13 @@ class PostPolicy
      */
     public function update(User $user, Post $post): bool
     {
-        // Admins can update any post
-        if ($user->hasRole('admin')) {
+        // Users with post.manage privilege can update any post
+        if ($user->hasPrivilege('post.manage')) {
             return true;
         }
 
-        // Editors can update their own drafts
-        if ($user->hasRole('editor') && $post->created_by === $user->id && $post->status === 'draft') {
+        // Users with post.create can update their own drafts
+        if ($user->hasPrivilege('post.create') && $post->created_by === $user->id && $post->status === 'draft') {
             return true;
         }
 
@@ -55,12 +55,13 @@ class PostPolicy
      */
     public function delete(User $user, Post $post): bool
     {
-        // Only admins or the creator can delete drafts
-        if ($user->hasRole('admin')) {
+        // Users with post.manage can delete any post
+        if ($user->hasPrivilege('post.manage')) {
             return true;
         }
 
-        return $post->created_by === $user->id && $post->status === 'draft';
+        // Users can delete their own drafts
+        return $user->hasPrivilege('post.create') && $post->created_by === $user->id && $post->status === 'draft';
     }
 
     /**
@@ -68,8 +69,8 @@ class PostPolicy
      */
     public function submitForApproval(User $user, Post $post): bool
     {
-        // Only creator or admin can submit
-        return ($post->created_by === $user->id || $user->hasRole('admin')) && $post->status === 'draft';
+        // Only creator or users with post.manage privilege can submit
+        return ($post->created_by === $user->id || $user->hasPrivilege('post.manage')) && $post->status === 'draft';
     }
 
     /**
@@ -77,8 +78,8 @@ class PostPolicy
      */
     public function approve(User $user, Post $post): bool
     {
-        // Only approvers and admins can approve
-        return $user->hasRole(['admin', 'approver']) && $post->status === 'pending';
+        // Only users with post.approve privilege can approve
+        return $user->hasPrivilege('post.approve') && $post->status === 'pending';
     }
 
     /**
@@ -86,8 +87,8 @@ class PostPolicy
      */
     public function reject(User $user, Post $post): bool
     {
-        // Only approvers and admins can reject
-        return $user->hasRole(['admin', 'approver']) && $post->status === 'pending';
+        // Only users with post.approve privilege can reject
+        return $user->hasPrivilege('post.approve') && $post->status === 'pending';
     }
 
     /**
@@ -95,8 +96,8 @@ class PostPolicy
      */
     public function comment(User $user, Post $post): bool
     {
-        // Anyone who can view can comment
-        return $user->hasRole(['admin', 'editor', 'approver']);
+        // Anyone who can view posts can comment
+        return $user->hasPrivilege('post.view');
     }
 
     /**
@@ -104,7 +105,7 @@ class PostPolicy
      */
     public function restore(User $user, Post $post): bool
     {
-        return $user->hasRole('admin');
+        return $user->hasPrivilege('post.manage');
     }
 
     /**
@@ -112,6 +113,6 @@ class PostPolicy
      */
     public function forceDelete(User $user, Post $post): bool
     {
-        return $user->hasRole('admin');
+        return $user->hasPrivilege('post.manage');
     }
 }

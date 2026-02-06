@@ -11,6 +11,8 @@ class ConnectedAccountsController extends Controller
 {
     public function index(Request $request)
     {
+        $this->authorize('viewAny', ConnectedSocialAccount::class);
+
         $brands = Brand::orderBy('name')->get();
         $accounts = ConnectedSocialAccount::with(['brand', 'token'])
             ->orderBy('created_at', 'desc')
