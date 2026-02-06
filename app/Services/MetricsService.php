@@ -75,17 +75,21 @@ class MetricsService
 
     private function fetchFacebookMetrics(string $postId, $account): array
     {
-        // Use page access token from account meta
-        $pageAccessToken = $account->meta['page_access_token'] ?? null;
-        
-        if (!$pageAccessToken) {
+        // Get the page access token from the account's OAuth token
+        // For Facebook pages, we store a separate token per page
+        $token = $account->oauthToken;
+
+        if (!$token) {
             return [
                 'success' => false,
-                'error' => 'No page access token available',
+                'error' => 'No OAuth token available',
             ];
         }
 
-        return $this->facebookConnector->fetchMetrics($postId, $pageAccessToken);
+        // Use the token's access_token (which is the page access token for Facebook pages)
+        $accessToken = $token->access_token;
+
+        return $this->facebookConnector->fetchMetrics($postId, $accessToken);
     }
 
     private function fetchLinkedInMetrics(string $shareUrn, string $accessToken): array
