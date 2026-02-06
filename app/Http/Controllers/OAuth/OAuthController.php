@@ -102,16 +102,27 @@ class OAuthController extends Controller
                         'access_token' => $target['meta']['page_access_token'],
                         'refresh_token' => null,
                         'expires_at' => null, // Page tokens don't expire
-                        'scopes' => ['pages_read_engagement', 'pages_manage_posts'],
+                        'scopes' => [
+                            'pages_read_engagement',
+                            'pages_manage_posts',
+                            'pages_manage_metadata',
+                            'pages_read_user_content',
+                        ],
                         'meta' => [
                             'page_id' => $target['external_id'],
                             'page_name' => $target['display_name'],
+                            'tasks' => $target['meta']['tasks'] ?? [],
                         ],
                     ]);
 
                     $tokenId = $pageToken->id;
+                    $accountMeta = [
+                        'page_access_token' => $target['meta']['page_access_token'],
+                        'tasks' => $target['meta']['tasks'] ?? [],
+                    ];
                 } else {
                     $tokenId = $token->id;
+                    $accountMeta = $target['meta'] ?? [];
                 }
 
                 // Create or update connected account
@@ -125,6 +136,7 @@ class OAuthController extends Controller
                         'display_name' => $target['display_name'],
                         'token_id' => $tokenId,
                         'status' => 'connected',
+                        'meta' => $accountMeta,
                     ]
                 );
 

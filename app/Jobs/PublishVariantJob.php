@@ -125,12 +125,11 @@ class PublishVariantJob implements ShouldQueue
 
             // Get publish target ID and access token
             $targetId = $account->external_account_id;
-            $accessToken = $token->access_token;
 
-            // For Facebook, use page access token if available
-            if ($variant->platform === 'facebook' && isset($account->meta['page_access_token'])) {
-                $accessToken = $account->meta['page_access_token'];
-            }
+            // Use the token's access_token directly
+            // For Facebook pages, we create separate tokens with page access tokens
+            // For LinkedIn, we use the organization/user token
+            $accessToken = $token->access_token;
 
             // Prepare options
             $options = [];

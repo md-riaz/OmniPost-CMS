@@ -19,11 +19,11 @@ class LinkedInConnector implements PlatformConnector
         $this->client = new Client([
             'timeout' => 30,
             'headers' => [
-                'LinkedIn-Version' => '202401',
+                'LinkedIn-Version' => '202412',
                 'X-Restli-Protocol-Version' => '2.0.0',
             ],
         ]);
-        
+
         $this->clientId = config('services.linkedin.client_id') ?? '';
         $this->clientSecret = config('services.linkedin.client_secret') ?? '';
 
@@ -45,6 +45,9 @@ class LinkedInConnector implements PlatformConnector
             'redirect_uri' => $redirectUri,
             'state' => base64_encode(json_encode($state)),
             'scope' => implode(' ', [
+                'openid',
+                'profile',
+                'w_member_social',
                 'r_organization_social',
                 'w_organization_social',
                 'rw_organization_admin',
@@ -139,10 +142,10 @@ class LinkedInConnector implements PlatformConnector
     {
         try {
             // Get user profile to find organizations
-            $profileResponse = $this->client->get('https://api.linkedin.com/v2/me', [
+            $profileResponse = $this->client->get('https://api.linkedin.com/v2/userinfo', [
                 'headers' => [
                     'Authorization' => 'Bearer ' . $token->access_token,
-                    'LinkedIn-Version' => '202401',
+                    'LinkedIn-Version' => '202412',
                 ],
             ]);
 
@@ -155,7 +158,7 @@ class LinkedInConnector implements PlatformConnector
                 ],
                 'headers' => [
                     'Authorization' => 'Bearer ' . $token->access_token,
-                    'LinkedIn-Version' => '202401',
+                    'LinkedIn-Version' => '202412',
                 ],
             ]);
 
@@ -215,6 +218,8 @@ class LinkedInConnector implements PlatformConnector
                 'headers' => [
                     'Authorization' => 'Bearer ' . $accessToken,
                     'Content-Type' => 'application/json',
+                    'LinkedIn-Version' => '202412',
+                    'X-Restli-Protocol-Version' => '2.0.0',
                 ],
                 'json' => $payload,
             ]);

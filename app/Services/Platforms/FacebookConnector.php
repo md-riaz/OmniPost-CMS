@@ -23,7 +23,7 @@ class FacebookConnector implements PlatformConnector
         
         $this->appId = config('services.facebook.client_id') ?? '';
         $this->appSecret = config('services.facebook.client_secret') ?? '';
-        $this->graphApiVersion = config('services.facebook.graph_api_version', 'v20.0');
+        $this->graphApiVersion = config('services.facebook.graph_api_version', 'v21.0');
 
         if (empty($this->appId) || empty($this->appSecret)) {
             throw new \RuntimeException('Facebook services configuration is incomplete. Please ensure FACEBOOK_CLIENT_ID and FACEBOOK_CLIENT_SECRET are set in your .env file.');
@@ -45,6 +45,8 @@ class FacebookConnector implements PlatformConnector
                 'pages_show_list',
                 'pages_read_engagement',
                 'pages_manage_posts',
+                'pages_manage_metadata',
+                'pages_read_user_content',
             ]),
         ];
 
@@ -80,10 +82,16 @@ class FacebookConnector implements PlatformConnector
             'platform' => 'facebook',
             'access_token' => $longLivedData['access_token'],
             'refresh_token' => null, // Facebook doesn't use refresh tokens
-            'expires_at' => isset($longLivedData['expires_in']) 
-                ? now()->addSeconds($longLivedData['expires_in']) 
+            'expires_at' => isset($longLivedData['expires_in'])
+                ? now()->addSeconds($longLivedData['expires_in'])
                 : now()->addDays(60), // Default 60 days for long-lived tokens
-            'scopes' => ['pages_show_list', 'pages_read_engagement', 'pages_manage_posts'],
+            'scopes' => [
+                'pages_show_list',
+                'pages_read_engagement',
+                'pages_manage_posts',
+                'pages_manage_metadata',
+                'pages_read_user_content',
+            ],
             'meta' => [
                 'token_type' => $longLivedData['token_type'] ?? 'bearer',
             ],
@@ -146,7 +154,7 @@ class FacebookConnector implements PlatformConnector
             $response = $this->client->get('https://graph.facebook.com/' . $this->graphApiVersion . '/me/accounts', [
                 'query' => [
                     'access_token' => $token->access_token,
-                    'fields' => 'id,name,access_token',
+                    'fields' => 'id,name,access_token,tasks',
                 ],
             ]);
 
@@ -158,6 +166,7 @@ class FacebookConnector implements PlatformConnector
                     'display_name' => $page['name'],
                     'meta' => [
                         'page_access_token' => $page['access_token'],
+                        'tasks' => $page['tasks'] ?? [],
                     ],
                 ];
             });
