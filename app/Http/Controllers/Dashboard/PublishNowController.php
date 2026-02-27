@@ -12,6 +12,8 @@ class PublishNowController extends Controller
 {
     public function __invoke(PostVariant $variant): RedirectResponse
     {
+        $this->authorize('publishNow', $variant);
+
         // Check if already published
         $successfulAttempt = $variant->publicationAttempts()
             ->where('result', 'success')

@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Dashboard;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Workflow\AddPostCommentRequest;
+use App\Http\Requests\Workflow\RejectPostRequest;
 use App\Models\Post;
 use App\Models\PostComment;
 use App\Services\PostStatusService;
@@ -46,16 +48,12 @@ class PostWorkflowController extends Controller
         }
     }
 
-    public function reject(Request $request, Post $post)
+    public function reject(RejectPostRequest $request, Post $post)
     {
         Gate::authorize('reject', $post);
 
-        $request->validate([
-            'reason' => 'required|string|max:1000',
-        ]);
-
         try {
-            $this->statusService->reject($post, Auth::user(), $request->reason);
+            $this->statusService->reject($post, Auth::user(), $request->validated('reason'));
             
             return redirect()
                 ->route('tyro-dashboard.resources.show', ['resource' => 'posts', 'id' => $post->id])
@@ -65,20 +63,17 @@ class PostWorkflowController extends Controller
         }
     }
 
-    public function addComment(Request $request, Post $post)
+    public function addComment(AddPostCommentRequest $request, Post $post)
     {
         Gate::authorize('comment', $post);
 
-        $request->validate([
-            'comment_text' => 'required|string|max:2000',
-            'parent_id' => 'nullable|exists:post_comments,id',
-        ]);
+        $validated = $request->validated();
 
         $comment = PostComment::create([
             'post_id' => $post->id,
             'user_id' => Auth::id(),
-            'parent_id' => $request->parent_id,
-            'comment_text' => $request->comment_text,
+            'parent_id' => $validated['parent_id'] ?? null,
+            'comment_text' => $validated['comment_text'],
         ]);
 
         // Notify post creator about new comment if it's not their own comment

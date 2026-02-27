@@ -2,11 +2,15 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\OAuth\OAuthController;
+use App\Http\Controllers\SetupController;
 use App\Http\Controllers\Dashboard\PublishNowController;
 use App\Http\Controllers\Dashboard\PostWorkflowController;
 use App\Http\Controllers\Dashboard\CrisisModeController;
 use App\Http\Controllers\Dashboard\ConnectedAccountsController;
 use App\Models\Brand;
+
+Route::get('/setup', [SetupController::class, 'show'])->name('setup.show');
+Route::post('/setup', [SetupController::class, 'store'])->name('setup.store');
 
 Route::get('/', function () {
     return view('welcome');

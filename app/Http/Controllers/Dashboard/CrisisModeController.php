@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Dashboard;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\CrisisMode\ToggleCrisisModeRequest;
 use App\Models\Brand;
 use App\Services\CrisisMode;
-use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 
@@ -17,6 +17,8 @@ class CrisisModeController extends Controller
 
     public function index(Brand $brand): View
     {
+        $this->authorize('manageCrisisMode', $brand);
+
         $status = $this->crisisMode->getStatus($brand->id);
 
         return view('dashboard.crisis-mode', [
@@ -25,13 +27,10 @@ class CrisisModeController extends Controller
         ]);
     }
 
-    public function enable(Request $request, Brand $brand): RedirectResponse
+    public function enable(ToggleCrisisModeRequest $request, Brand $brand): RedirectResponse
     {
-        $validated = $request->validate([
-            'platform' => 'nullable|in:facebook,linkedin,all',
-        ]);
-
-        $platform = $validated['platform'] === 'all' ? null : $validated['platform'];
+        $this->authorize('manageCrisisMode', $brand);
+        $platform = $request->normalizedPlatform();
 
         $this->crisisMode->enableForBrand(
             brandId: $brand->id,
@@ -46,13 +45,10 @@ class CrisisModeController extends Controller
             ->with('success', "Crisis mode enabled {$scope}. All scheduled posts are paused.");
     }
 
-    public function disable(Request $request, Brand $brand): RedirectResponse
+    public function disable(ToggleCrisisModeRequest $request, Brand $brand): RedirectResponse
     {
-        $validated = $request->validate([
-            'platform' => 'nullable|in:facebook,linkedin,all',
-        ]);
-
-        $platform = $validated['platform'] === 'all' ? null : $validated['platform'];
+        $this->authorize('manageCrisisMode', $brand);
+        $platform = $request->normalizedPlatform();
 
         $this->crisisMode->disable(
             brandId: $brand->id,

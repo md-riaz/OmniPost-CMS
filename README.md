@@ -51,9 +51,9 @@ OmniPost CMS is a Laravel-based content management system built with Tyro Dashbo
 
 3. **The database is already configured!** ✨
    - SQLite database is included and pre-configured
-   - .env file is tracked in the repository for easy setup
+   - Copy `.env.example` to `.env` and generate an app key
    - All migrations are already run
-   - Default superuser is created
+   - On first boot, complete the setup wizard to create the first admin account
 
 4. **Start the development server**
    ```bash
@@ -62,8 +62,7 @@ OmniPost CMS is a Laravel-based content management system built with Tyro Dashbo
 
 5. **Access the dashboard**
    - URL: http://localhost:8008/dashboard
-   - Email: `admin@omnipost.local`
-   - Password: `password123`
+   - If no users exist, you will be redirected to `/setup` to create the first admin account.
 
 That's it! No complex setup, no configuration files to create. Just install and run! 🚀
 
@@ -138,7 +137,7 @@ Experience the OmniPost CMS interface with these screenshots from the live appli
 #### Login Page
 ![Login Page](https://github.com/user-attachments/assets/53debc51-61e5-4c1a-9d7d-46feadfd367a)
 
-Clean, modern login interface with email and password authentication. Default credentials: `admin@omnipost.local` / `password123`
+Clean, modern login interface with email and password authentication.
 
 ---
 
@@ -479,12 +478,11 @@ php artisan schedule:work
 - This will initiate a new OAuth flow
 
 
-## Default Login Credentials
+## First Login
 
-- **Email**: `admin@omnipost.local`
-- **Password**: `password123`
+On a fresh install, OmniPost redirects to `/setup` to create the first administrator account.
 
-⚠️ **Important**: Change the default password after first login in production!
+⚠️ **Important**: Never commit `.env` or real credentials. Rotate any exposed keys immediately.
 
 ## Project Structure
 

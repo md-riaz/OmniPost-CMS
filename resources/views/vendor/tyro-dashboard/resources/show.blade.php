@@ -15,6 +15,43 @@
     <div class="page-header-row">
         <h1 class="page-title">{{ Str::singular($config['title']) }} Details</h1>
         <div>
+            @if($resource === 'posts')
+                @can('submitForApproval', $item)
+                    <form action="{{ route('dashboard.posts.submit-for-approval', $item) }}" method="POST" style="display:inline;">
+                        @csrf
+                        <button type="submit" class="btn btn-primary">Submit for Approval</button>
+                    </form>
+                @endcan
+
+                @can('approve', $item)
+                    <form action="{{ route('dashboard.posts.approve', $item) }}" method="POST" style="display:inline;">
+                        @csrf
+                        <button type="submit" class="btn btn-success">Approve</button>
+                    </form>
+                @endcan
+
+                @can('reject', $item)
+                    <form action="{{ route('dashboard.posts.reject', $item) }}" method="POST" style="display:inline;" onsubmit="return submitRejectReason(this)">
+                        @csrf
+                        <input type="hidden" name="reason" value="">
+                        <button type="submit" class="btn btn-danger">Reject</button>
+                    </form>
+                @endcan
+
+                @can('view', $item)
+                    <a href="{{ route('dashboard.posts.comments', $item) }}" class="btn btn-ghost">Comments</a>
+                @endcan
+            @endif
+
+            @if($resource === 'post-variants')
+                @can('publishNow', $item)
+                    <form action="{{ route('dashboard.post-variants.publish-now', $item) }}" method="POST" style="display:inline;" onsubmit="return confirm('Publish this variant now?')">
+                        @csrf
+                        <button type="submit" class="btn btn-primary">Publish Now</button>
+                    </form>
+                @endcan
+            @endif
+
             @if(!($isReadonly ?? false))
             <a href="{{ route('tyro-dashboard.resources.edit', [$resource, $item->id]) }}" class="btn btn-primary">Edit</a>
             <form action="{{ route('tyro-dashboard.resources.destroy', [$resource, $item->id]) }}" method="POST" onsubmit="return confirm('Are you sure?')" style="display: inline;">
@@ -67,4 +104,13 @@
         </div>
     </div>
 </div>
+
+<script>
+function submitRejectReason(form) {
+    const reason = prompt('Enter rejection reason:');
+    if (!reason) return false;
+    form.querySelector('input[name="reason"]').value = reason;
+    return true;
+}
+</script>
 @endsection
