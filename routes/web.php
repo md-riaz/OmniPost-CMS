@@ -7,6 +7,7 @@ use App\Http\Controllers\Dashboard\PublishNowController;
 use App\Http\Controllers\Dashboard\PostWorkflowController;
 use App\Http\Controllers\Dashboard\CrisisModeController;
 use App\Http\Controllers\Dashboard\ConnectedAccountsController;
+use App\Http\Controllers\Dashboard\QueueController;
 use App\Models\Brand;
 
 Route::get('/setup', [SetupController::class, 'show'])->name('setup.show');
@@ -55,4 +56,10 @@ Route::middleware(['auth'])->group(function () {
         ->name('dashboard.analytics.post-performance');
     Route::get('/dashboard/analytics/export', [\App\Http\Controllers\Dashboard\AnalyticsController::class, 'export'])
         ->name('dashboard.analytics.export');
+
+    // Role queues
+    Route::get('/dashboard/queues/editor', [QueueController::class, 'editor'])->name('dashboard.queues.editor');
+    Route::get('/dashboard/queues/approver', [QueueController::class, 'approver'])->name('dashboard.queues.approver');
+    Route::get('/dashboard/queues/publisher', [QueueController::class, 'publisher'])->name('dashboard.queues.publisher');
+    Route::get('/dashboard/queues/manager', [QueueController::class, 'manager'])->name('dashboard.queues.manager');
 });

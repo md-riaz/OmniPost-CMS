@@ -37,8 +37,8 @@ class PostPolicy
      */
     public function update(User $user, Post $post): bool
     {
-        // Users with post.manage privilege can update any post
-        if ($user->hasPrivilege('post.manage')) {
+        // Users with post.edit privilege can update any post
+        if ($user->hasPrivilege('post.edit')) {
             return true;
         }
 
@@ -55,8 +55,8 @@ class PostPolicy
      */
     public function delete(User $user, Post $post): bool
     {
-        // Users with post.manage can delete any post
-        if ($user->hasPrivilege('post.manage')) {
+        // Users with post.edit can delete any post
+        if ($user->hasPrivilege('post.edit')) {
             return true;
         }
 
@@ -69,8 +69,8 @@ class PostPolicy
      */
     public function submitForApproval(User $user, Post $post): bool
     {
-        // Only creator or users with post.manage privilege can submit
-        return ($post->created_by === $user->id || $user->hasPrivilege('post.manage')) && $post->status === 'draft';
+        // Only creator or users with post.edit privilege can submit
+        return ($post->created_by === $user->id || $user->hasPrivilege('post.edit')) && $post->status === 'draft';
     }
 
     /**
@@ -105,7 +105,7 @@ class PostPolicy
      */
     public function restore(User $user, Post $post): bool
     {
-        return $user->hasPrivilege('post.manage');
+        return $user->hasPrivilege('post.edit');
     }
 
     /**
@@ -113,6 +113,6 @@ class PostPolicy
      */
     public function forceDelete(User $user, Post $post): bool
     {
-        return $user->hasPrivilege('post.manage');
+        return $user->hasPrivilege('post.edit');
     }
 }

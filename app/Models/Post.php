@@ -13,6 +13,7 @@ class Post extends Model
 
     protected $fillable = [
         'brand_id',
+        'campaign_id',
         'created_by',
         'status',
         'title',
@@ -22,16 +23,25 @@ class Post extends Model
         'utm_template',
         'approved_by',
         'approved_at',
+        'approval_due_at',
+        'approval_escalated_at',
     ];
 
     protected $casts = [
         'base_media' => 'array',
         'approved_at' => 'datetime',
+        'approval_due_at' => 'datetime',
+        'approval_escalated_at' => 'datetime',
     ];
 
     public function brand(): BelongsTo
     {
         return $this->belongsTo(Brand::class);
+    }
+
+    public function campaign(): BelongsTo
+    {
+        return $this->belongsTo(Campaign::class);
     }
 
     public function creator(): BelongsTo

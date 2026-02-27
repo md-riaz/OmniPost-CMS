@@ -16,3 +16,6 @@ Schedule::command('posts:schedule')->everyMinute();
 
 // Schedule metrics ingestion to run nightly at 2 AM
 Schedule::job(new \App\Jobs\IngestMetricsJob(30))->dailyAt('02:00');
+
+// Escalate pending approvals that miss SLA every 15 minutes
+Schedule::command('approvals:escalate-overdue')->everyFifteenMinutes();

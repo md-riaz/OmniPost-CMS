@@ -38,6 +38,11 @@ class Brand extends Model
         return $this->hasMany(ConnectedSocialAccount::class);
     }
 
+    public function campaigns(): HasMany
+    {
+        return $this->hasMany(Campaign::class);
+    }
+
     public function posts(): HasMany
     {
         return $this->hasMany(Post::class);

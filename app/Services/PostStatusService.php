@@ -32,6 +32,8 @@ class PostStatusService
         return DB::transaction(function () use ($post, $user) {
             $oldStatus = $post->status;
             $post->status = 'pending';
+            $post->approval_due_at = now()->addHours(4);
+            $post->approval_escalated_at = null;
             $post->save();
 
             $this->recordTransition($post, $oldStatus, $user, null);
@@ -60,6 +62,8 @@ class PostStatusService
             $post->status = 'approved';
             $post->approved_by = $user->id;
             $post->approved_at = now();
+            $post->approval_due_at = null;
+            $post->approval_escalated_at = null;
             $post->save();
 
             $this->recordTransition($post, $oldStatus, $user, null);
@@ -94,6 +98,8 @@ class PostStatusService
         return DB::transaction(function () use ($post, $user, $reason) {
             $oldStatus = $post->status;
             $post->status = 'draft';
+            $post->approval_due_at = null;
+            $post->approval_escalated_at = null;
             $post->save();
 
             $this->recordTransition($post, $oldStatus, $user, $reason);
